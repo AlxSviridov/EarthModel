@@ -4,7 +4,7 @@ Last updated: 2026-07-12 (Europe/London)
 
 ## Current status
 
-Release candidate implemented, browser-verified, and live on Firebase Hosting. Core science, 3D scene, annual playback, progressive city-comparison chart, guided discoveries, responsive UI, local assets, and release configuration are complete. Remaining release actions: final post-change check/redeploy, commit, and push.
+Production release implemented, browser-verified, deployed to Firebase Hosting, and synchronized to GitHub `main`. Core science, 3D scene, annual playback, progressive city-comparison chart, guided discoveries, responsive UI, local assets, and release configuration are complete.
 
 ## Milestones
 
@@ -18,7 +18,7 @@ Release candidate implemented, browser-verified, and live on Firebase Hosting. C
 - [x] Bundle and document production textures
 - [x] Responsive/accessibility pass
 - [x] Automated checks and browser QA
-- [ ] GitHub commit and push
+- [x] GitHub commit and push
 - [x] Firebase configure, deploy, and verify
 
 ## Known environment state
@@ -32,7 +32,7 @@ Release candidate implemented, browser-verified, and live on Firebase Hosting. C
 
 ## Next concrete action
 
-Run final `npm run check`, redeploy the progressive-chart refinement, verify the public URL, then commit/push `main`.
+No required release work remains. For the next iteration, start by reviewing learner feedback and the ten scenario acceptance criteria in `docs/PRODUCT.md`.
 
 ## Decision log
 
@@ -43,3 +43,4 @@ Run final `npm run check`, redeploy the progressive-chart refinement, verify the
 - 2026-07-12 — Browser QA fixed mirrored city coordinates, globe annotation collisions, and incomplete camera transitions; verified desktop and 390×844 mobile layouts.
 - 2026-07-12 — Created dedicated Firebase project `earthmodel-orbit-lab`; configured immutable asset caching and SPA fallback.
 - 2026-07-12 — First live deployment verified at `https://earthmodel-orbit-lab.web.app/` with the WebGL scene and local textures loaded successfully.
+- 2026-07-12 — Final progressive-chart release verified live (trace growth, pause state, and direct-link refresh), committed as `eed8613`, and pushed to GitHub `main`.
