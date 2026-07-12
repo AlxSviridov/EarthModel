@@ -1,6 +1,6 @@
 # Orbit Lab
 
-Orbit Lab is a production-ready, interactive Earth–Sun model for exploring why daylight length changes with season and latitude. It connects a realistic Three.js globe, annual orbit, city-level daylight readout, and multi-city comparison chart in one science-museum-style experience.
+Orbit Lab is a production-ready, interactive Earth–Sun model for exploring why daylight length changes with season and latitude. Version 2 connects three science-museum-style labs—Orbit, Sky paths, and Sundial—through one shared city, date, and local solar time.
 
 ## What learners can do
 
@@ -12,6 +12,10 @@ Orbit Lab is a production-ready, interactive Earth–Sun model for exploring why
 - Change Earth’s axial tilt from 0° to 45° as a thought experiment
 - Switch between close globe and full orbit cameras, then drag/zoom freely
 - Launch ten guided, prediction-first discoveries designed for a 10-year-old
+- Run a calm Year journey at fixed local solar time or freeze the date and watch One day
+- Drag local solar time directly and jump to sunrise, noon, sunset, or midnight
+- Compare solar trajectories across places or across four seasons
+- Calibrate a latitude-correct horizontal sundial and inspect its equation-of-time drift
 
 The full product contract and acceptance scenarios live in [`docs/PRODUCT.md`](docs/PRODUCT.md).
 
@@ -50,4 +54,3 @@ The orbit view is compressed and explicitly labeled as not to scale. Daylight us
 ## Persistent project memory
 
 Every coding agent should read [`AGENTS.md`](AGENTS.md) first. [`CLAUDE.md`](CLAUDE.md) simply points to the same provider-independent memory.
-

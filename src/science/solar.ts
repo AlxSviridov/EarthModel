@@ -1,6 +1,7 @@
 export const EARTH_TILT_DEGREES = 23.44
 export const APPARENT_SUNRISE_ALTITUDE_DEGREES = -0.833
 export const MS_PER_DAY = 86_400_000
+export const MS_PER_HOUR = 3_600_000
 
 const radians = (degrees: number) => (degrees * Math.PI) / 180
 const degrees = (radiansValue: number) => (radiansValue * 180) / Math.PI
@@ -94,6 +95,102 @@ export function subsolarLongitude(date: Date): number {
   return 180 - utcHours * 15
 }
 
+export interface SolarPosition {
+  altitudeDegrees: number
+  azimuthDegrees: number
+  aboveHorizon: boolean
+}
+
+/** Sun position for a geographic latitude at apparent local solar time. Azimuth is clockwise from north. */
+export function solarPosition(
+  latitudeDegrees: number,
+  date: Date,
+  localSolarHours: number,
+  tiltDegrees = EARTH_TILT_DEGREES,
+): SolarPosition {
+  const latitude = radians(Math.max(-90, Math.min(90, latitudeDegrees)))
+  const declination = declinationForTilt(date, tiltDegrees)
+  const hourAngle = radians((localSolarHours - 12) * 15)
+  const altitude = Math.asin(
+    Math.sin(latitude) * Math.sin(declination) +
+      Math.cos(latitude) * Math.cos(declination) * Math.cos(hourAngle),
+  )
+  const azimuth = Math.atan2(
+    Math.sin(hourAngle),
+    Math.cos(hourAngle) * Math.sin(latitude) - Math.tan(declination) * Math.cos(latitude),
+  )
+  const azimuthDegrees = ((degrees(azimuth) + 180) % 360 + 360) % 360
+  const altitudeDegrees = degrees(altitude)
+  return { altitudeDegrees, azimuthDegrees, aboveHorizon: altitudeDegrees >= APPARENT_SUNRISE_ALTITUDE_DEGREES }
+}
+
+export function sunriseSunsetSolarHours(latitude: number, date: Date, tilt = EARTH_TILT_DEGREES): { sunrise: number | null; sunset: number | null; state: SolarState } {
+  const result = daylightAt(latitude, date, tilt)
+  if (result.state !== 'normal') return { sunrise: null, sunset: null, state: result.state }
+  return { sunrise: 12 - result.hours / 2, sunset: 12 + result.hours / 2, state: result.state }
+}
+
+/** Approximate difference: apparent solar time minus mean solar time, in minutes. */
+export function equationOfTimeMinutes(date: Date): number {
+  const gamma = (2 * Math.PI * (dayOfYear(date) - 1)) / daysInYear(date.getUTCFullYear())
+  return 229.18 * (
+    0.000075 +
+    0.001868 * Math.cos(gamma) -
+    0.032077 * Math.sin(gamma) -
+    0.014615 * Math.cos(2 * gamma) -
+    0.040849 * Math.sin(2 * gamma)
+  )
+}
+
+export function calibratedSundialErrorMinutes(date: Date, calibrationDate: Date): number {
+  return equationOfTimeMinutes(date) - equationOfTimeMinutes(calibrationDate)
+}
+
+export interface SundialShadow {
+  east: number
+  north: number
+  length: number
+  visible: boolean
+}
+
+/** Angle of an hour line from the noon line on a horizontal dial. Morning is negative. */
+export function horizontalDialHourAngleDegrees(latitude: number, localSolarHours: number): number {
+  const hourAngle = radians((localSolarHours - 12) * 15)
+  return degrees(Math.atan(Math.sin(radians(Math.abs(latitude))) * Math.tan(hourAngle)))
+}
+
+/** Shadow tip cast by a unit polar-aligned gnomon onto a horizontal dial. */
+export function sundialShadow(latitude: number, date: Date, localSolarHours: number): SundialShadow {
+  const position = solarPosition(latitude, date, localSolarHours)
+  if (position.altitudeDegrees <= 0) return { east: 0, north: 0, length: 0, visible: false }
+  const latitudeMagnitude = radians(Math.abs(latitude))
+  const poleSign = latitude >= 0 ? 1 : -1
+  const gnomonNorth = poleSign * Math.cos(latitudeMagnitude)
+  const gnomonUp = Math.sin(latitudeMagnitude)
+  const altitude = radians(position.altitudeDegrees)
+  const azimuth = radians(position.azimuthDegrees)
+  const sunEast = Math.cos(altitude) * Math.sin(azimuth)
+  const sunNorth = Math.cos(altitude) * Math.cos(azimuth)
+  const rayDistance = gnomonUp / Math.max(Math.sin(altitude), 1e-6)
+  const east = -rayDistance * sunEast
+  const north = gnomonNorth - rayDistance * sunNorth
+  const length = Math.min(Math.hypot(east, north), 12)
+  const scale = Math.hypot(east, north) > 12 ? 12 / Math.hypot(east, north) : 1
+  return { east: east * scale, north: north * scale, length, visible: true }
+}
+
+/** UTC instant whose simplified apparent local solar time matches the requested hour at a longitude. */
+export function dateAtLocalSolarTime(date: Date, longitudeDegrees: number, localSolarHours: number): Date {
+  const utcHours = localSolarHours - longitudeDegrees / 15
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) + utcHours * MS_PER_HOUR)
+}
+
+export function formatClock(hours: number): string {
+  const normalized = ((hours % 24) + 24) % 24
+  const totalMinutes = Math.round(normalized * 60) % (24 * 60)
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`
+}
+
 export function isLocationInDaylight(latitude: number, longitude: number, date: Date, tilt = EARTH_TILT_DEGREES): boolean {
   const declination = declinationForTilt(date, tilt)
   const hourAngle = radians(longitude - subsolarLongitude(date))
@@ -103,4 +200,3 @@ export function isLocationInDaylight(latitude: number, longitude: number, date: 
   )
   return degrees(altitude) >= APPARENT_SUNRISE_ALTITUDE_DEGREES
 }
-

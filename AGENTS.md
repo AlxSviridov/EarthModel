@@ -17,12 +17,14 @@ Build **Orbit Lab**, a production-quality, browser-based educational model that 
 - Responsive and keyboard-accessible controls, reduced-motion support, loading/error states, no required backend.
 - Ten learning scenarios in `docs/PRODUCT.md` must be possible.
 - Production build, browser QA, GitHub sync, and Firebase Hosting deployment.
+- Version 2 has three first-class labs: **Orbit**, **Sky paths**, and **Sundial**. Shared city/date state should make moving between them feel like continuing one investigation.
+- Annual playback holds local solar time fixed; daily playback holds the date fixed. Never visually alias many Earth rotations into a flickering annual timelapse.
 
 ## Working rules
 
 1. Preserve scientific correctness over visual shortcuts. If the visualization is not to scale, label it.
 2. The Earth’s axial direction stays fixed in inertial space as it orbits; do not tilt it toward the Sun all year.
-3. Simulation time is UTC. Civil time zones and daylight-saving time are out of scope unless explicitly added later.
+3. Astronomy calculations use UTC internally. Learner-facing time in the Orbit and Sky paths labs is **local solar time**, because it maps noon directly to the Sun crossing the local meridian. Civil time zones and daylight-saving time remain out of scope.
 4. Day length uses a standard solar-declination / sunrise-hour-angle model. Polar day/night must be handled without `NaN`.
 5. Keep rendering code separate from astronomy/math. Pure science functions require tests.
 6. Do not hotlink production textures. Bundle optimized assets and document origin/license in `docs/ASSETS.md`.
@@ -30,6 +32,9 @@ Build **Orbit Lab**, a production-quality, browser-based educational model that 
 8. Never commit credentials, Firebase tokens, or local environment files.
 9. Run checks proportionate to changes: `npm run check` for ordinary code; browser interaction and visual QA for user-facing changes.
 10. Update the progress ledger after meaningful work. Use `[x]`, `[~]`, `[ ]`, and record the next concrete action.
+11. Text smaller than 11 CSS px is prohibited for meaningful UI; default body/controls target 13–15 px. The layout must be checked at 390×844, 768×900, 1024×768, 1280×720, and a wide desktop viewport.
+12. Camera buttons are recallable presets. Focus City also enables explicit city tracking, which keeps the chosen place centred while Earth/light move; any pointer drag releases tracking and returns camera ownership to the learner.
+13. The focused city defines the 3D scene's local solar clock. At 12:00 its meridian faces the Sun; at its computed sunrise/sunset it sits at the day edge. Pinned comparison cities are evaluated at the same local solar hour in each city's own sky, not at one simultaneous UTC instant.
 
 ## Intended commands
 
@@ -58,4 +63,3 @@ firebase deploy --only hosting
 ## Product voice and visual direction
 
 Premium science-museum exhibit, not a dashboard template: deep ink space, warm solar amber, icy daylight blue, restrained glass panels, editorial typography, large readable numbers, and short child-friendly explanations. Prefer direct manipulation and guided discoveries to settings-heavy UI.
-

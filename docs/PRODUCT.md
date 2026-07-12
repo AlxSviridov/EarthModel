@@ -67,3 +67,42 @@ A curious 10-year-old exploring alongside a parent or teacher. Reading should be
 
 All ten scenarios can be completed without developer tools; pure science tests pass; production build has no blocking warnings; critical controls are usable by keyboard; layout is verified at desktop and mobile sizes; textures are bundled and credited; the deployed Firebase URL loads directly and after refresh; repository is pushed cleanly to GitHub.
 
+## Version 2.0 redesign
+
+### Why playback changes
+
+Fast annual playback must not also render hundreds of daily spins. At 30–90 days per second that aliases into blinking and teaches nothing. Version 2 separates the time scales:
+
+- **Year journey** — date advances at 1, 7, 30, or 90 days per second while the selected location stays at a chosen local solar time. The globe/orbit, seasonal lighting, daylight readout, and annual trace change smoothly. Default: local solar noon.
+- **One day** — date stays fixed while local solar time advances at 0.25×, 1×, 4×, or 12× conceptual speed. The camera stays with the city and the terminator crosses it visibly.
+- **Direct manipulation** — date and local-solar-time have separate large sliders. A learner can drag either without an acceleration gesture or hidden mode switch. Preset sunrise/noon/sunset/midnight actions make repeatable comparisons easy.
+
+The original suggestion of velocity-sensitive nonlinear scrubbing was rejected after design analysis: it is difficult to discover, difficult to repeat, and mixes two independent variables. Explicit date/time scales are more illustrative for a child.
+
+### Three connected labs
+
+1. **Orbit** — realistic Earth/Sun model, day-length chart, Year journey and One day playback, tilt experiments, city comparisons.
+2. **Sky paths** — a horizon-dome plot of solar altitude versus azimuth. Compare one date across selected cities or one city across the March equinox, June solstice, September equinox, and December solstice. A time cursor travels along each path.
+3. **Sundial** — horizontal-dial emulator showing gnomon, live shadow, apparent solar reading, mean solar time, calibration date, and annual accumulated error caused by the equation of time.
+
+### Version 2 learning scenarios
+
+11. **Watch one calm year** — Keep London at local noon and play 30 days/s. Earth completes a smooth orbit without daily flashing; the annual trace grows.
+12. **Cross one sunrise** — Freeze 21 June and play one London day slowly. The city crosses from darkness into light and the time readout passes sunrise.
+13. **Compare noon shadows** — At the same local solar time/date, switch London and Quito and observe different Sun altitude and shadow length.
+14. **Four skies, one day** — In Sky paths compare London, Quito, Tromsø, and Cape Town on 21 June; each curve has a distinct height/length.
+15. **One sky, four seasons** — In Sky paths keep London fixed and compare equinox/solstice trajectories.
+16. **Calibrate a sundial** — Calibrate on 15 April, move through the year, and see the displayed time drift ahead/behind mean solar time.
+17. **Latitude changes the dial** — Compare London, Quito, and Sydney dial geometry and live shadow direction while retaining the same calibration date.
+
+### Responsive/readability contract
+
+- No meaningful copy below 11 px; primary controls 13–15 px; key values 26–42 px.
+- No horizontal page overflow at 320 px or wider.
+- The annual chart always uses the actual measured container width; it never relies on a fixed minimum SVG width.
+- At widths below 1000 px the control panel becomes a dismissible drawer and the visualization uses the full viewport width.
+- At short desktop heights the page scrolls normally; no control must become unreachable behind a fixed-height region.
+
+### Version 2 acceptance
+
+Test every Year journey speed and every One day speed, both sliders at endpoints and midpoints, camera drag/zoom after both presets, active-preset refocus, all three labs, both Sky paths comparison modes, at least three sundial cities/calibration dates, and the five required viewport sizes. There must be no application console errors.

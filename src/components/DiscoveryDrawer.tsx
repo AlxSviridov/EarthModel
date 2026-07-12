@@ -4,7 +4,7 @@ import { useSimulation } from '../store/useSimulation'
 
 export function DiscoveryDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const discoveryIndex = useSimulation((state) => state.discoveryIndex)
-  const { setDiscoveryIndex, setSelectedCities, setDate, setTilt, setPlaying, setCameraMode } = useSimulation()
+  const { setDiscoveryIndex, setSelectedCities, setDate, setTilt, setPlaying, setCameraMode, setPlaybackMode, setSolarHour } = useSimulation()
   const activeIndex = discoveryIndex ?? 0
   const active = discoveries[activeIndex]
 
@@ -15,6 +15,8 @@ export function DiscoveryDrawer({ open, onClose }: { open: boolean; onClose: () 
     setDate(new Date(Date.UTC(2026, discovery.month, discovery.day, 12)))
     setTilt(discovery.tilt ?? 23.44)
     setPlaying(false)
+    setPlaybackMode('year')
+    setSolarHour(12)
     setCameraMode(index === 7 || index === 8 ? 'orbit' : 'globe')
   }
 
@@ -38,4 +40,3 @@ export function DiscoveryDrawer({ open, onClose }: { open: boolean; onClose: () 
     </div>
   )
 }
-

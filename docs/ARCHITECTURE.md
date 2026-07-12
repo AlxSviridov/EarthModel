@@ -11,7 +11,7 @@
 
 ## State model
 
-One store owns simulation date, playback state/speed, axial tilt, selected/focused cities, camera mode, overlays, and discovery state. Render components subscribe to narrow selectors. The animation loop advances simulation time; science functions remain pure and accept dates/coordinates explicitly.
+One store owns active lab, simulation date, local solar time, playback mode/state/speed, axial tilt, selected/focused cities, camera mode/tracking/reset nonce, overlays, and discovery state. Render components subscribe to narrow selectors. The animation loop advances either date or time—not both—according to playback mode. Science functions remain pure and accept dates/coordinates explicitly.
 
 ## Astronomy model
 
@@ -21,12 +21,16 @@ For day-of-year `N`, solar declination uses a compact Fourier approximation (Spe
 
 where `h0 = -0.833°`. Values below -1 are polar day (24 h); above +1 are polar night (0 h); otherwise day length is `24 * H0 / π`.
 
-The rendered orbit is circular for conceptual clarity. Seasonal distance variation is not the cause being taught. Earth’s axis is fixed in world space as the orbital position changes. One rendered spin represents the selected UTC time of day; fast annual playback may visually slow/summarize daily spin to avoid aliasing.
+The rendered orbit is circular for conceptual clarity. Seasonal distance variation is not the cause being taught. Earth’s axis is fixed in world space as the orbital position changes. Year playback advances orbital phase at fixed local solar time; One day playback advances rotation at fixed orbital phase. This avoids temporal aliasing rather than merely slowing it.
+
+Earth's rendered spin is solved from the current Earth-to-Sun direction, fixed axial tilt, focused-city longitude, and selected local solar hour. Solar noon therefore puts the focused city's meridian under the Sun at every orbital phase instead of incorrectly treating the local clock as UTC. The focused city owns the scene clock; comparison curves and sky paths intentionally compare the same local solar hour separately in every city. Civil time zones and DST remain outside this teaching model.
+
+Solar sky paths use standard altitude/azimuth conversion from latitude, declination, and local hour angle. The sundial lab models a polar-aligned gnomon on a horizontal dial, including latitude-dependent hour-line angles, and uses the NOAA-style equation-of-time approximation. A dial calibrated on date `C` has annual reading error `E(date) - E(C)` relative to local mean solar time; longitude/civil-zone offsets are explained separately and not conflated with this seasonal drift.
 
 ## Rendering layers
 
 1. Procedural star field and subtle nebular backdrop
-2. Sun mesh with animated shader/noise, sprite glow, and point/directional illumination
+2. Sun mesh with animated multi-octave procedural granulation, limb variation, corona shells/sprites, and point illumination
 3. Orbit path, month ticks, seasonal event labels, and fixed-axis guide
 4. Earth shader blending day and night textures from the light direction
 5. Cloud shell, rim atmosphere, terminator edge, latitude/equator and axis overlays
@@ -45,3 +49,10 @@ The rendered orbit is circular for conceptual clarity. Seasonal distance variati
 
 The canvas is supplementary: date, daylight length, city, and explanation always exist in semantic HTML. Buttons have names and pressed state; sliders expose values; chart has a text summary/table alternative. A WebGL failure replaces the canvas with a styled explanatory panel while chart learning remains functional.
 
+## Version 2 responsive chart
+
+`DaylightChart` observes its own container with `ResizeObserver` and calculates the SVG coordinate system from actual CSS pixels. Text therefore stays legible instead of being scaled down inside a fixed 1000-unit viewBox. Month-label density reduces on narrow widths while all curves and event guides remain visible.
+
+## Camera ownership
+
+Preset selection increments a reset nonce. Focus City enables tracking: the camera follows the focused surface normal so the city stays centred while Earth rotates and orbits. Starting a pointer gesture immediately releases tracking; the camera then follows only Earth's orbital translation and preserves the learner's chosen relative angle. Full Orbit is always free. Clicking a preset recalls its composition.
