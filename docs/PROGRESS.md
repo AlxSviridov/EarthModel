@@ -33,7 +33,7 @@ Version 2 is implemented, verified, and live at `https://earthmodel-orbit-lab.we
 - [x] Build Sundial calibration/error lab
 - [x] Automated and exhaustive browser QA matrix
 - [x] Firebase deploy/live verification
-- [~] GitHub commit/push and final ledger update
+- [x] GitHub commit/push and final ledger update
 
 ## Known environment state
 
@@ -46,7 +46,7 @@ Version 2 is implemented, verified, and live at `https://earthmodel-orbit-lab.we
 
 ## Next concrete action
 
-Commit the completed v2 release, push `main`, and confirm a clean synchronized worktree.
+Version 2 is complete. For future changes, begin with the newest user feedback and preserve the local-solar/tracked-camera semantics recorded in `AGENTS.md`.
 
 ## Decision log
 
@@ -65,3 +65,4 @@ Commit the completed v2 release, push `main`, and confirm a clean synchronized w
 - 2026-07-12 — Final deployment blocked when automatic approval review reported the Codex usage limit reached; do not reattempt until approvals are available.
 - 2026-07-12 — Corrected the scene's time reference: the focused city's longitude and selected local solar hour now determine Earth spin relative to the current Sun direction. Added explicit tracked-city camera mode (released by drag) and an in-scene orbit/season navigator.
 - 2026-07-12 — Final v2 release deployed and verified live. Fixed Firebase caching so the app shell and code revalidate on release; textures remain immutable. Live London sunrise/tracking/orbit checks and console log passed.
+- 2026-07-12 — Version 2 release committed as `aa65593` and pushed to GitHub `main`.
