@@ -54,11 +54,10 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - [x] Replace the two fixed comparison modes with free (city, date) traces, one live and up to three pinned
 - [x] Extract and fix the flat panorama: memoised paths, adaptive sampling near the zenith, table alternative
 - [x] Add the scene error boundary, WebGL probe, and reduced-motion hook
+- [x] Add a true first-person "Look around" viewpoint that turns on the spot, Street View style
 - [x] Automated checks and the version 3 browser QA matrix
 - [x] GitHub commit/push
-- [~] Firebase deploy and live verification — blocked, see below
-
-- [x] Add a true first-person "Look around" viewpoint
+- [ ] Firebase deploy and live verification — blocked on credentials, see below
 
 ## Known environment state
 
@@ -71,8 +70,9 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 
 ## Next concrete action
 
-Version 3 is committed as `6580700` and pushed to `claude/current-status-qvya12`, with
-automated checks and the browser QA matrix green. The deploy is the only outstanding step
+Version 3 is pushed to `claude/current-status-qvya12`, currently at `11f7446` (the dome in
+`6580700`, the ledger correction in `84bd5cd`, the first-person viewpoint in `11f7446`),
+with automated checks and the browser QA matrix green. The deploy is the only outstanding step
 and is blocked on Firebase credentials in this container. Once they are available, run
 `npx firebase-tools@latest deploy --only hosting` and repeat the London June/December check
 on the live URL. For later changes, preserve the dome frame, the single apparent-horizon convention,
