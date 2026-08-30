@@ -55,8 +55,8 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - [x] Extract and fix the flat panorama: memoised paths, adaptive sampling near the zenith, table alternative
 - [x] Add the scene error boundary, WebGL probe, and reduced-motion hook
 - [x] Automated checks and the version 3 browser QA matrix
-- [ ] Firebase deploy and live verification
-- [ ] GitHub commit/push and final ledger update
+- [x] GitHub commit/push
+- [~] Firebase deploy and live verification — blocked, see below
 
 ## Known environment state
 
@@ -64,13 +64,16 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - Git remote: `https://github.com/AlxSviridov/EarthModel.git`
 - Repository default branch: `main`; remote repository was empty at clone time
 - `gh auth status` reports the saved GitHub token invalid. Plain Git credential helper has not yet been tested for push.
-- Firebase CLI is available through `npx firebase-tools@latest`; signed-in account verified.
+- Firebase CLI is available through `npx firebase-tools@latest`, but **this container holds no Firebase credentials**: `~/.config/configstore/firebase-tools.json` contains only cached MOTD data and no token, and no `FIREBASE_TOKEN` or `GOOGLE_APPLICATION_CREDENTIALS` is set. `firebase deploy` fails with "Failed to authenticate, have you run firebase login?". The earlier "signed-in account verified" note applied to a previous container. Deploying needs an interactive `firebase login` or a CI token/service account supplied to the session.
 - Dedicated Firebase project created: `earthmodel-orbit-lab` (project number `652009410953`).
 
 ## Next concrete action
 
-Deploy version 3 to Firebase Hosting and repeat the London June/December check on the live
-URL. For later changes, preserve the dome frame, the single apparent-horizon convention,
+Version 3 is committed as `6580700` and pushed to `claude/current-status-qvya12`, with
+automated checks and the browser QA matrix green. The deploy is the only outstanding step
+and is blocked on Firebase credentials in this container. Once they are available, run
+`npx firebase-tools@latest deploy --only hosting` and repeat the London June/December check
+on the live URL. For later changes, preserve the dome frame, the single apparent-horizon convention,
 and the separation between sunrise direction and east-west crossing recorded in
 `AGENTS.md` and `docs/ARCHITECTURE.md`.
 
