@@ -19,6 +19,7 @@ Build **Orbit Lab**, a production-quality, browser-based educational model that 
 - Production build, browser QA, GitHub sync, and Firebase Hosting deployment.
 - Version 2 has three first-class labs: **Orbit**, **Sky paths**, and **Sundial**. Shared city/date state should make moving between them feel like continuing one investigation.
 - Annual playback holds local solar time fixed; daily playback holds the date fixed. Never visually alias many Earth rotations into a flickering annual timelapse.
+- Version 3 makes Sky paths a 3D sky dome: compass horizon, north-south and east-west ground lines, the east-west great circle dividing the sky into a north half and a south half, and up to four traces that are free (city, date) pairs. The flat panorama stays beside it and must keep the lab usable on its own.
 
 ## Working rules
 
@@ -34,7 +35,11 @@ Build **Orbit Lab**, a production-quality, browser-based educational model that 
 10. Update the progress ledger after meaningful work. Use `[x]`, `[~]`, `[ ]`, and record the next concrete action.
 11. Text smaller than 11 CSS px is prohibited for meaningful UI; default body/controls target 13–15 px. The layout must be checked at 390×844, 768×900, 1024×768, 1280×720, and a wide desktop viewport.
 12. Camera buttons are recallable presets. Focus City also enables explicit city tracking, which keeps the chosen place centred while Earth/light move; any pointer drag releases tracking and returns camera ownership to the learner.
-13. The focused city defines the 3D scene's local solar clock. At 12:00 its meridian faces the Sun; at its computed sunrise/sunset it sits at the day edge. Pinned comparison cities are evaluated at the same local solar hour in each city's own sky, not at one simultaneous UTC instant.
+13. Sunrise direction and the east-west crossing are separate facts and must be stated separately. Rising north of due east follows from positive declination alone and is true at every latitude in both hemispheres; crossing the east-west line during the day additionally requires |latitude| > |declination|. Near the equator the Sun can rise north of east and stay north all day, so never collapse the two into one verdict.
+14. One horizon convention across the whole project: the apparent -0.833° altitude. Drawn arcs, `aboveHorizon`, and quoted sunrise/sunset times must all use it.
+15. Do not assert a north/south verdict within about 3° of the zenith, where azimuth is ill-conditioned; say the Sun passes almost straight overhead. Any flat azimuth plot must subdivide near such a transit or it draws a false spike.
+16. Reduced motion must be honoured in JavaScript, not only CSS: no autoplay, and camera presets snap rather than ease. Both 3D scenes stay inside an error boundary with a WebGL probe.
+17. The focused city defines the 3D scene's local solar clock. At 12:00 its meridian faces the Sun; at its computed sunrise/sunset it sits at the day edge. Pinned comparison cities are evaluated at the same local solar hour in each city's own sky, not at one simultaneous UTC instant.
 
 ## Intended commands
 

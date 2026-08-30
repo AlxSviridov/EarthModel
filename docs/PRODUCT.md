@@ -82,7 +82,7 @@ The original suggestion of velocity-sensitive nonlinear scrubbing was rejected a
 ### Three connected labs
 
 1. **Orbit** — realistic Earth/Sun model, day-length chart, Year journey and One day playback, tilt experiments, city comparisons.
-2. **Sky paths** — a horizon-dome plot of solar altitude versus azimuth. Compare one date across selected cities or one city across the March equinox, June solstice, September equinox, and December solstice. A time cursor travels along each path.
+2. **Sky paths** — a 3D sky dome you stand inside, with a compass horizon, N–S and east–west ground lines, altitude rings, and the east–west great circle that splits the sky into a north half and a south half. Up to four traces, each a free (city, date) pair: the first follows the shared city and date, the rest are pinned snapshots. Each trace draws the whole 24-hour path — the night portion dimmed beneath the ground — with hour marks and a Sun marker at the shared local solar hour. Optional layers add a ghost arc for every month and the annual sunrise-azimuth band on the horizon. The flat azimuth/altitude panorama sits below the dome, cross-highlighted with it, and carries the lab on its own if WebGL is unavailable.
 3. **Sundial** — horizontal-dial emulator showing gnomon, live shadow, apparent solar reading, mean solar time, calibration date, and annual accumulated error caused by the equation of time.
 
 ### Version 2 learning scenarios
@@ -90,10 +90,19 @@ The original suggestion of velocity-sensitive nonlinear scrubbing was rejected a
 11. **Watch one calm year** — Keep London at local noon and play 30 days/s. Earth completes a smooth orbit without daily flashing; the annual trace grows.
 12. **Cross one sunrise** — Freeze 21 June and play one London day slowly. The city crosses from darkness into light and the time readout passes sunrise.
 13. **Compare noon shadows** — At the same local solar time/date, switch London and Quito and observe different Sun altitude and shadow length.
-14. **Four skies, one day** — In Sky paths compare London, Quito, Tromsø, and Cape Town on 21 June; each curve has a distinct height/length.
-15. **One sky, four seasons** — In Sky paths keep London fixed and compare equinox/solstice trajectories.
+14. **Four skies, one day** — In Sky paths pin London, Quito, Tromsø, and Cape Town on 21 June; each arc has a distinct height and length.
+15. **One sky, two seasons** — In Sky paths pin London on 21 June, then move the date to 21 December and see the two arcs together.
 16. **Calibrate a sundial** — Calibrate on 15 April, move through the year, and see the displayed time drift ahead/behind mean solar time.
 17. **Latitude changes the dial** — Compare London, Quito, and Sydney dial geometry and live shadow direction while retaining the same calibration date.
+
+### Version 3 learning scenarios
+
+18. **Summer starts in the north-east** — In Sky paths set London to 21 June. The Sun rises 49° NE, climbs to 62°, and sets 311° NW; the arc crosses the amber east–west line twice. Move to 21 December: it rises 128° SE, never reaches 16°, and stays south all day.
+19. **Due east, everywhere** — At either equinox, every city's arc starts within about a degree of due east and ends within about a degree of due west, whatever the latitude. The readout says *almost exactly due east*, because the apparent horizon and the calendar date both fall slightly short of the exact equinox instant.
+20. **Rising north of east is not the same as crossing** — Quito on 21 June also rises north of east (67° ENE), but the Sun stays on the north side all day and never crosses the east–west line. Whether it rises north of east depends on the date; whether it crosses depends on the latitude.
+21. **Mirror skies** — Pin London and Sydney on the same June date. London's arc leans south and is long; Sydney's leans north and is short.
+22. **A Sun that never sets** — Tromsø on 21 June draws a closed loop that never touches the ground disc. On 21 December the whole loop sits beneath it, and the readout says the Sun stays below the horizon all day.
+23. **How far the sunrise wanders** — Turn on the sunrise spread. London's sunrise slides along 80° of horizon through the year; Tromsø's covers nearly the whole horizon and vanishes entirely for part of the year.
 
 ### Responsive/readability contract
 

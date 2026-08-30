@@ -25,7 +25,22 @@ The rendered orbit is circular for conceptual clarity. Seasonal distance variati
 
 Earth's rendered spin is solved from the current Earth-to-Sun direction, fixed axial tilt, focused-city longitude, and selected local solar hour. Solar noon therefore puts the focused city's meridian under the Sun at every orbital phase instead of incorrectly treating the local clock as UTC. The focused city owns the scene clock; comparison curves and sky paths intentionally compare the same local solar hour separately in every city. Civil time zones and DST remain outside this teaching model.
 
-Solar sky paths use standard altitude/azimuth conversion from latitude, declination, and local hour angle. The sundial lab models a polar-aligned gnomon on a horizontal dial, including latitude-dependent hour-line angles, and uses the NOAA-style equation-of-time approximation. A dial calibrated on date `C` has annual reading error `E(date) - E(C)` relative to local mean solar time; longitude/civil-zone offsets are explained separately and not conflated with this seasonal drift.
+Solar sky paths use standard altitude/azimuth conversion from latitude, declination, and local hour angle. Azimuth is measured clockwise from north over `[0, 360)`.
+
+### Sky dome frame and conventions (version 3)
+
+The dome uses `+X = east`, `+Y = up`, `-Z = north`, so a sky direction is `x = cos(alt)·sin(az)`, `y = sin(alt)`, `z = -cos(alt)·cos(az)`. That mapping lives in the tested pure function `skyVector` rather than inline in the scene. A dome removes the 0°/360° seam by construction: the flat panorama had to break its SVG subpath whenever adjacent azimuths differed by more than 180°, which suppressed the wrong connector but still severed the arc.
+
+One horizon convention is used everywhere: the apparent `-0.833°` altitude that already backs `daylightAt` and `sunriseSunsetSolarHours`. `SunSample.aboveHorizon` and `solarPosition` share it, so the drawn arc splits at exactly the altitude whose time the readout quotes. The earlier lab filtered its arc at `>= 0` while quoting `-0.833°` times, and the two disagreed by a few minutes.
+
+Two numerical caveats are handled explicitly rather than hidden:
+
+- **Near-zenith transits make azimuth ill-conditioned.** At Quito on the equinox the Sun passes 89.7° and the azimuth swings about 77° within one five-minute sample. In 3D the points stay adjacent so the dome is smooth, but the flat panorama would draw a spike; `SkyPathChart` subdivides any interval whose azimuth step exceeds 6°. No north/south verdict is asserted within 3° of the zenith — the readout says the Sun passes almost straight overhead instead.
+- **The annual sunrise band degenerates towards the poles.** London's sunrise azimuth spans about 80° of horizon; Tromsø's spans about 169° and vanishes for roughly a third of the year. `annualSunriseAzimuthRange` therefore also returns `daysWithoutSunrise`, and the lab annotates the band instead of implying the Sun rises somewhere on every day of the year.
+
+Rising north of due east and crossing the east–west line are separate facts, and the readouts keep them separate. Sunrise azimuth below 90° follows from positive declination alone, so it holds at every latitude in both hemispheres. Crossing additionally requires the midday Sun on the far side of the prime vertical, which depends on latitude — near the equator the Sun can rise north of east and stay north all day. A single "crosses" verdict would be false at low latitudes.
+
+The sundial lab models a polar-aligned gnomon on a horizontal dial, including latitude-dependent hour-line angles, and uses the NOAA-style equation-of-time approximation. A dial calibrated on date `C` has annual reading error `E(date) - E(C)` relative to local mean solar time; longitude/civil-zone offsets are explained separately and not conflated with this seasonal drift.
 
 ## Rendering layers
 
@@ -48,6 +63,8 @@ Solar sky paths use standard altitude/azimuth conversion from latitude, declinat
 ## Accessibility and resilience
 
 The canvas is supplementary: date, daylight length, city, and explanation always exist in semantic HTML. Buttons have names and pressed state; sliders expose values; chart has a text summary/table alternative. A WebGL failure replaces the canvas with a styled explanatory panel while chart learning remains functional.
+
+Version 3 makes that real rather than aspirational. `SceneBoundary` is an error boundary wrapping both 3D scenes; it probes for a WebGL context and renders an `error-card` panel on failure or on a render error. Because the sky dome and the flat panorama are both on screen, losing the dome leaves the Sky paths lab fully usable. `SkyPathChart` carries the `title`/`desc` pair and a visually hidden summary table that the accessibility contract had promised but never shipped. `usePrefersReducedMotion` reads the media query in JavaScript, which CSS alone cannot do: it suppresses playback in `SimulationTicker` and snaps camera presets instead of easing them. The dome is keyboard operable — arrow keys orbit, `+`/`-` zoom.
 
 ## Version 2 responsive chart
 

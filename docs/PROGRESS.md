@@ -1,10 +1,21 @@
 # Progress Ledger
 
-Last updated: 2026-07-12 (Europe/London)
+Last updated: 2026-08-30 (Europe/London)
 
 ## Current status
 
-Version 2 is implemented, verified, and live at `https://earthmodel-orbit-lab.web.app/`. Extensive browser QA covers all eight playback speeds, date/time invariants, camera tracking/release/recall, both Sky paths comparison modes, Sundial calibration, five responsive sizes, chart fit, and zero horizontal overflow. The focused-city scene uses true local solar geometry rather than UTC spin, tracking can keep a city centred, and the scene exposes Full orbit plus direct equinox/solstice jumps. Automated checks and the final live regression pass with no browser errors.
+Version 3 rebuilds the Sky paths lab around a 3D sky dome: a compass horizon with N-S and
+east-west ground lines, the east-west great circle that splits the sky into a north half
+and a south half, altitude rings, and up to four comparable traces that are free
+(city, date) pairs. Each trace draws its whole 24-hour path with the night portion dimmed
+beneath the ground, hour marks, and a Sun marker at the shared local solar hour. Optional
+layers add a ghost arc for every month and the annual sunrise band. The flat panorama
+remains below the dome, cross-highlighted, and carries the lab if WebGL is unavailable.
+Two readout lines per trace keep "rises north of due east" and "crosses the east-west
+line" separate, because the first depends only on the date and the second also depends on
+latitude. Automated checks pass and the browser QA matrix in `docs/QA-V3.md` is green.
+
+Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.web.app/`. Extensive browser QA covers all eight playback speeds, date/time invariants, camera tracking/release/recall, both Sky paths comparison modes, Sundial calibration, five responsive sizes, chart fit, and zero horizontal overflow. The focused-city scene uses true local solar geometry rather than UTC spin, tracking can keep a city centred, and the scene exposes Full orbit plus direct equinox/solstice jumps. Automated checks and the final live regression pass with no browser errors.
 
 ## Milestones
 
@@ -35,6 +46,18 @@ Version 2 is implemented, verified, and live at `https://earthmodel-orbit-lab.we
 - [x] Firebase deploy/live verification
 - [x] GitHub commit/push and final ledger update
 
+### Version 3
+
+- [x] Verify the phenomenon against the repository's own model before designing
+- [x] Add tested pure functions for sun tracks, horizon events, compass naming, and the annual sunrise range
+- [x] Build the 3D sky dome scene with compass horizon, east-west great circle, and per-trace arcs
+- [x] Replace the two fixed comparison modes with free (city, date) traces, one live and up to three pinned
+- [x] Extract and fix the flat panorama: memoised paths, adaptive sampling near the zenith, table alternative
+- [x] Add the scene error boundary, WebGL probe, and reduced-motion hook
+- [x] Automated checks and the version 3 browser QA matrix
+- [ ] Firebase deploy and live verification
+- [ ] GitHub commit/push and final ledger update
+
 ## Known environment state
 
 - Node: v25.8.1; npm: 11.11.0
@@ -46,7 +69,10 @@ Version 2 is implemented, verified, and live at `https://earthmodel-orbit-lab.we
 
 ## Next concrete action
 
-Version 2 is complete. For future changes, begin with the newest user feedback and preserve the local-solar/tracked-camera semantics recorded in `AGENTS.md`.
+Deploy version 3 to Firebase Hosting and repeat the London June/December check on the live
+URL. For later changes, preserve the dome frame, the single apparent-horizon convention,
+and the separation between sunrise direction and east-west crossing recorded in
+`AGENTS.md` and `docs/ARCHITECTURE.md`.
 
 ## Decision log
 
@@ -66,3 +92,9 @@ Version 2 is complete. For future changes, begin with the newest user feedback a
 - 2026-07-12 — Corrected the scene's time reference: the focused city's longitude and selected local solar hour now determine Earth spin relative to the current Sun direction. Added explicit tracked-city camera mode (released by drag) and an in-scene orbit/season navigator.
 - 2026-07-12 — Final v2 release deployed and verified live. Fixed Firebase caching so the app shell and code revalidate on release; textures remain immutable. Live London sunrise/tracking/orbit checks and console log passed.
 - 2026-07-12 — Version 2 release committed as `aa65593` and pushed to GitHub `main`.
+- 2026-08-30 — Verified the target phenomenon against the repository's own declination model before designing. London rises 48.9° NE on 21 June and 128.5° SE on 21 December, which confirmed the request; Quito rises 66.5° NE in June yet stays north all day, which disproved the single "crosses the east-west line" verdict originally planned.
+- 2026-08-30 — Split the readout into two lines. Sunrise north of due east follows from declination alone and holds at every latitude in both hemispheres; crossing the east-west line additionally needs |latitude| > |declination|. One combined verdict would have taught a falsehood near the equator.
+- 2026-08-30 — Unified on the apparent -0.833° horizon everywhere. The old lab drew its arc from 0° while quoting -0.833° sunrise times.
+- 2026-08-30 — Chose a 3D dome over the flat panorama as the primary view. The 0°/360° seam that QA patched in version 2 is intrinsic to the projection, and near-zenith transits that spike a flat chart are smooth on a dome.
+- 2026-08-30 — Dropped the planned "From the east" viewpoint as geometrically degenerate: viewing along the east-west axis collapses the symmetric morning and afternoon halves onto each other. "Whole sky" replaced it and became the default, because a June arc at London spans 262° of azimuth and cannot be seen whole from inside the dome. "Standing here" remains as the immersive view, pitched by the day's noon altitude with a wider lens so horizon and arc share the frame.
+- 2026-08-30 — Introduced the first error boundary in the project, with a WebGL probe, wrapping both 3D scenes; and a reduced-motion hook, since the existing CSS-only rule could not stop the animation loop or camera easing.

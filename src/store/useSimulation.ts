@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { cityById } from '../data/cities'
+import { MAX_SKY_TRACES, type SkyTrace } from '../data/skyTraces'
 import { dateFromYearProgress, EARTH_TILT_DEGREES, yearProgress } from '../science/solar'
 
 export type CameraMode = 'globe' | 'orbit'
@@ -25,6 +26,7 @@ interface SimulationState {
   showEquator: boolean
   showTerminator: boolean
   discoveryIndex: number | null
+  skyTraces: SkyTrace[]
   setPlaying: (playing: boolean) => void
   setActiveLab: (lab: Lab) => void
   setPlaybackMode: (mode: PlaybackMode) => void
@@ -43,6 +45,10 @@ interface SimulationState {
   recallCamera: (mode: CameraMode) => void
   toggleOverlay: (overlay: 'axis' | 'equator' | 'terminator') => void
   setDiscoveryIndex: (index: number | null) => void
+  pinSkyTrace: (cityId: string, dateIso: string) => void
+  updateSkyTrace: (id: string, patch: Partial<Omit<SkyTrace, 'id'>>) => void
+  removeSkyTrace: (id: string) => void
+  clearSkyTraces: () => void
   reset: () => void
 }
 
@@ -68,6 +74,7 @@ export const useSimulation = create<SimulationState>()(
       showEquator: false,
       showTerminator: true,
       discoveryIndex: null,
+      skyTraces: [],
       setPlaying: (playing) => set({ playing }),
       setActiveLab: (activeLab) => set({ activeLab, playing: false }),
       setPlaybackMode: (playbackMode) => set({ playbackMode, playing: false }),
@@ -90,9 +97,13 @@ export const useSimulation = create<SimulationState>()(
       recallCamera: (cameraMode) => set((state) => ({ cameraMode, trackCity: cameraMode === 'globe', cameraResetNonce: state.cameraResetNonce + 1 })),
       toggleOverlay: (overlay) => set((state) => overlay === 'axis' ? { showAxis: !state.showAxis } : overlay === 'equator' ? { showEquator: !state.showEquator } : { showTerminator: !state.showTerminator }),
       setDiscoveryIndex: (discoveryIndex) => set({ discoveryIndex }),
-      reset: () => set((state) => ({ dateIso: initialDate, activeLab: 'orbit', playing: false, playbackMode: 'year', yearSpeed: 30, daySpeed: 4, solarHour: 12, tilt: EARTH_TILT_DEGREES, selectedCityIds: ['london'], focusedCityId: 'london', cameraMode: 'globe', trackCity: true, cameraResetNonce: state.cameraResetNonce + 1, showAxis: true, showEquator: false, showTerminator: true, discoveryIndex: null })),
+      pinSkyTrace: (cityId, dateIso) => set((state) => ({ skyTraces: [...state.skyTraces, { id: `${cityId}-${dateIso}-${state.skyTraces.length}-${Date.now()}`, cityId, dateIso }].slice(-(MAX_SKY_TRACES - 1)) })),
+      updateSkyTrace: (id, patch) => set((state) => ({ skyTraces: state.skyTraces.map((trace) => trace.id === id ? { ...trace, ...patch } : trace) })),
+      removeSkyTrace: (id) => set((state) => ({ skyTraces: state.skyTraces.filter((trace) => trace.id !== id) })),
+      clearSkyTraces: () => set({ skyTraces: [] }),
+      reset: () => set((state) => ({ dateIso: initialDate, skyTraces: [], activeLab: 'orbit', playing: false, playbackMode: 'year', yearSpeed: 30, daySpeed: 4, solarHour: 12, tilt: EARTH_TILT_DEGREES, selectedCityIds: ['london'], focusedCityId: 'london', cameraMode: 'globe', trackCity: true, cameraResetNonce: state.cameraResetNonce + 1, showAxis: true, showEquator: false, showTerminator: true, discoveryIndex: null })),
     }),
-    { name: 'orbit-lab-simulation-v2', partialize: (state) => ({ activeLab: state.activeLab, playbackMode: state.playbackMode, yearSpeed: state.yearSpeed, daySpeed: state.daySpeed, solarHour: state.solarHour, tilt: state.tilt, selectedCityIds: state.selectedCityIds, focusedCityId: state.focusedCityId, cameraMode: state.cameraMode, trackCity: state.trackCity, showAxis: state.showAxis, showEquator: state.showEquator, showTerminator: state.showTerminator }) },
+    { name: 'orbit-lab-simulation-v2', partialize: (state) => ({ activeLab: state.activeLab, playbackMode: state.playbackMode, yearSpeed: state.yearSpeed, daySpeed: state.daySpeed, solarHour: state.solarHour, tilt: state.tilt, selectedCityIds: state.selectedCityIds, focusedCityId: state.focusedCityId, cameraMode: state.cameraMode, trackCity: state.trackCity, showAxis: state.showAxis, showEquator: state.showEquator, showTerminator: state.showTerminator, skyTraces: state.skyTraces }) },
   ),
 )
 

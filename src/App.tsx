@@ -3,6 +3,7 @@ import { BookOpen, Compass, Globe2, Info, Menu, Orbit, SunMedium, X } from 'luci
 import { ControlPanel } from './components/ControlPanel'
 import { DaylightChart } from './components/DaylightChart'
 import { DiscoveryDrawer } from './components/DiscoveryDrawer'
+import { SceneBoundary } from './components/SceneBoundary'
 import { SimulationTicker } from './components/SimulationTicker'
 import { SkyPathsLab } from './components/SkyPathsLab'
 import { SundialLab } from './components/SundialLab'
@@ -40,7 +41,7 @@ export default function App() {
       {activeLab === 'orbit' && <main id="main" className="workspace">
         <div className="visual-column">
           <section className="hero-copy"><span className="eyebrow">EARTH–SUN EXPLORER</span><h1>Why does daylight<br /><em>change?</em></h1><p>Hold the clock still to watch a year. Hold the date still to watch one day.</p></section>
-          <EarthScene />
+          <SceneBoundary title="The 3D Earth needs WebGL" message="Your browser could not start the 3D view. The daylight chart below still works, and the Sky paths and Sundial labs are unaffected."><EarthScene /></SceneBoundary>
           <DaylightChart />
         </div>
         <div className={mobileControls ? 'controls-column mobile-open' : 'controls-column'}><ControlPanel onOpenDiscoveries={() => setDiscoveriesOpen(true)} onClose={() => setMobileControls(false)} /></div>

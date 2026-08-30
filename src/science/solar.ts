@@ -130,6 +130,107 @@ export function sunriseSunsetSolarHours(latitude: number, date: Date, tilt = EAR
   return { sunrise: 12 - result.hours / 2, sunset: 12 + result.hours / 2, state: result.state }
 }
 
+export interface SunSample {
+  hour: number
+  altitudeDegrees: number
+  azimuthDegrees: number
+  aboveHorizon: boolean
+}
+
+/** One local-solar day of Sun positions, including the night half the sky dome draws below ground. */
+export function sunTrack(latitudeDegrees: number, date: Date, stepMinutes = 5, tiltDegrees = EARTH_TILT_DEGREES): SunSample[] {
+  const steps = Math.max(1, Math.round((24 * 60) / stepMinutes))
+  return Array.from({ length: steps + 1 }, (_, index) => {
+    const hour = (index * 24) / steps
+    const position = solarPosition(latitudeDegrees, date, hour, tiltDegrees)
+    return { hour, ...position }
+  })
+}
+
+export interface HorizonEvent {
+  hour: number
+  azimuthDegrees: number
+}
+
+export interface SunDayEvents {
+  state: SolarState
+  daylightHours: number
+  sunrise: HorizonEvent | null
+  sunset: HorizonEvent | null
+  noonHour: number
+  noonAltitudeDegrees: number
+  noonAzimuthDegrees: number
+}
+
+/** Sunrise/sunset directions and the midday Sun for one day, safe through polar day and night. */
+export function sunDayEvents(latitudeDegrees: number, date: Date, tiltDegrees = EARTH_TILT_DEGREES): SunDayEvents {
+  const daylight = daylightAt(latitudeDegrees, date, tiltDegrees)
+  const riseSet = sunriseSunsetSolarHours(latitudeDegrees, date, tiltDegrees)
+  const noon = solarPosition(latitudeDegrees, date, 12, tiltDegrees)
+  const event = (hour: number | null): HorizonEvent | null =>
+    hour === null ? null : { hour, azimuthDegrees: solarPosition(latitudeDegrees, date, hour, tiltDegrees).azimuthDegrees }
+  return {
+    state: daylight.state,
+    daylightHours: daylight.hours,
+    sunrise: event(riseSet.sunrise),
+    sunset: event(riseSet.sunset),
+    noonHour: 12,
+    noonAltitudeDegrees: noon.altitudeDegrees,
+    noonAzimuthDegrees: noon.azimuthDegrees,
+  }
+}
+
+const COMPASS_POINTS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+
+/** Nearest 16-point compass name for an azimuth measured clockwise from north. */
+export function compassPoint(azimuthDegrees: number): string {
+  const normalized = ((azimuthDegrees % 360) + 360) % 360
+  return COMPASS_POINTS[Math.round(normalized / 22.5) % 16]
+}
+
+/** Signed angle from due east: positive to the north of it, negative to the south. */
+export function eastOffsetDegrees(azimuthDegrees: number): number {
+  const normalized = ((azimuthDegrees % 360) + 360) % 360
+  const fromEast = 90 - normalized
+  return fromEast > 180 ? fromEast - 360 : fromEast <= -180 ? fromEast + 360 : fromEast
+}
+
+/** How far along the horizon the year moves sunrise, and how many days have no sunrise at all. */
+export function annualSunriseAzimuthRange(
+  latitudeDegrees: number,
+  year: number,
+  tiltDegrees = EARTH_TILT_DEGREES,
+  sampleDays = 3,
+): { minAzimuth: number | null; maxAzimuth: number | null; daysWithoutSunrise: number } {
+  let minAzimuth: number | null = null
+  let maxAzimuth: number | null = null
+  let daysWithoutSunrise = 0
+  const length = daysInYear(year)
+  for (let day = 0; day < length; day += sampleDays) {
+    const date = new Date(Date.UTC(year, 0, day + 1, 12))
+    const { sunrise } = sunriseSunsetSolarHours(latitudeDegrees, date, tiltDegrees)
+    if (sunrise === null) {
+      daysWithoutSunrise += Math.min(sampleDays, length - day)
+      continue
+    }
+    const { azimuthDegrees } = solarPosition(latitudeDegrees, date, sunrise, tiltDegrees)
+    minAzimuth = minAzimuth === null ? azimuthDegrees : Math.min(minAzimuth, azimuthDegrees)
+    maxAzimuth = maxAzimuth === null ? azimuthDegrees : Math.max(maxAzimuth, azimuthDegrees)
+  }
+  return { minAzimuth, maxAzimuth, daysWithoutSunrise }
+}
+
+/** Unit direction on the sky dome: east/north/up, so the scene never re-derives the trigonometry. */
+export function skyVector(altitudeDegrees: number, azimuthDegrees: number): { east: number; north: number; up: number } {
+  const altitude = radians(altitudeDegrees)
+  const azimuth = radians(azimuthDegrees)
+  return {
+    east: Math.cos(altitude) * Math.sin(azimuth),
+    north: Math.cos(altitude) * Math.cos(azimuth),
+    up: Math.sin(altitude),
+  }
+}
+
 /** Approximate difference: apparent solar time minus mean solar time, in minutes. */
 export function equationOfTimeMinutes(date: Date): number {
   const gamma = (2 * Math.PI * (dayOfYear(date) - 1)) / daysInYear(date.getUTCFullYear())

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { MS_PER_DAY } from '../science/solar'
 import { useSimulation } from '../store/useSimulation'
 
 export function SimulationTicker() {
-  const playing = useSimulation((state) => state.playing)
+  const reducedMotion = usePrefersReducedMotion()
+  const playing = useSimulation((state) => state.playing) && !reducedMotion
   const playbackMode = useSimulation((state) => state.playbackMode)
   const yearSpeed = useSimulation((state) => state.yearSpeed)
   const daySpeed = useSimulation((state) => state.daySpeed)
