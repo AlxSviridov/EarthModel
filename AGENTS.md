@@ -19,7 +19,7 @@ Build **Orbit Lab**, a production-quality, browser-based educational model that 
 - Production build, browser QA, GitHub sync, and Firebase Hosting deployment.
 - Version 2 has three first-class labs: **Orbit**, **Sky paths**, and **Sundial**. Shared city/date state should make moving between them feel like continuing one investigation.
 - Annual playback holds local solar time fixed; daily playback holds the date fixed. Never visually alias many Earth rotations into a flickering annual timelapse.
-- Version 3 makes Sky paths a 3D sky dome: compass horizon, north-south and east-west ground lines, the east-west great circle dividing the sky into a north half and a south half, and up to four traces that are free (city, date) pairs. The flat panorama stays beside it and must keep the lab usable on its own.
+- Version 3 makes Sky paths a 3D sky dome: compass horizon, north-south and east-west ground lines, the east-west great circle dividing the sky into a north half and a south half, and up to four traces that are free (city, date) pairs. The flat panorama stays beside it and must keep the lab usable on its own. "Look around" is a first-person viewpoint: the camera stays at the observer's eye point in the centre and turns on the spot like Street View. Never reduce it to an orbit control swinging around a point ahead of the viewer, which is not the same thing and hides the horizon.
 
 ## Working rules
 

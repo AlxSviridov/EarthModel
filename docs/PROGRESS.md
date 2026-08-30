@@ -58,6 +58,8 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - [x] GitHub commit/push
 - [~] Firebase deploy and live verification — blocked, see below
 
+- [x] Add a true first-person "Look around" viewpoint
+
 ## Known environment state
 
 - Node: v25.8.1; npm: 11.11.0
@@ -101,3 +103,4 @@ and the separation between sunrise direction and east-west crossing recorded in
 - 2026-08-30 — Chose a 3D dome over the flat panorama as the primary view. The 0°/360° seam that QA patched in version 2 is intrinsic to the projection, and near-zenith transits that spike a flat chart are smooth on a dome.
 - 2026-08-30 — Dropped the planned "From the east" viewpoint as geometrically degenerate: viewing along the east-west axis collapses the symmetric morning and afternoon halves onto each other. "Whole sky" replaced it and became the default, because a June arc at London spans 262° of azimuth and cannot be seen whole from inside the dome. "Standing here" remains as the immersive view, pitched by the day's noon altitude with a wider lens so horizon and arc share the frame.
 - 2026-08-30 — Introduced the first error boundary in the project, with a WebGL probe, wrapping both 3D scenes; and a reduced-motion hook, since the existing CSS-only rule could not stop the animation loop or camera easing.
+- 2026-08-30 — Added a real first-person viewpoint after review. The previous "Standing here" preset still used `OrbitControls`, so dragging orbited the camera around a point ahead of the viewer rather than turning it on the spot. "Look around" now pins the camera to the eye point and drives heading and pitch directly, Street View style, with the wheel changing field of view instead of distance. The two outside viewpoints keep `OrbitControls`.

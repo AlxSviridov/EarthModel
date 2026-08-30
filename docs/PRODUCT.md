@@ -82,7 +82,7 @@ The original suggestion of velocity-sensitive nonlinear scrubbing was rejected a
 ### Three connected labs
 
 1. **Orbit** — realistic Earth/Sun model, day-length chart, Year journey and One day playback, tilt experiments, city comparisons.
-2. **Sky paths** — a 3D sky dome you stand inside, with a compass horizon, N–S and east–west ground lines, altitude rings, and the east–west great circle that splits the sky into a north half and a south half. Up to four traces, each a free (city, date) pair: the first follows the shared city and date, the rest are pinned snapshots. Each trace draws the whole 24-hour path — the night portion dimmed beneath the ground — with hour marks and a Sun marker at the shared local solar hour. Optional layers add a ghost arc for every month and the annual sunrise-azimuth band on the horizon. The flat azimuth/altitude panorama sits below the dome, cross-highlighted with it, and carries the lab on its own if WebGL is unavailable.
+2. **Sky paths** — a 3D sky dome you stand inside, with a compass horizon, N–S and east–west ground lines, altitude rings, and the east–west great circle that splits the sky into a north half and a south half. Up to four traces, each a free (city, date) pair: the first follows the shared city and date, the rest are pinned snapshots. Each trace draws the whole 24-hour path — the night portion dimmed beneath the ground — with hour marks and a Sun marker at the shared local solar hour. Optional layers add a ghost arc for every month and the annual sunrise-azimuth band on the horizon. Three viewpoints: **Whole sky** (default, the complete arc seen from outside), **Look around** (first-person from the middle of the dome, turning on the spot like Street View), and **From above**. The flat azimuth/altitude panorama sits below the dome, cross-highlighted with it, and carries the lab on its own if WebGL is unavailable.
 3. **Sundial** — horizontal-dial emulator showing gnomon, live shadow, apparent solar reading, mean solar time, calibration date, and annual accumulated error caused by the equation of time.
 
 ### Version 2 learning scenarios
@@ -102,7 +102,8 @@ The original suggestion of velocity-sensitive nonlinear scrubbing was rejected a
 20. **Rising north of east is not the same as crossing** — Quito on 21 June also rises north of east (67° ENE), but the Sun stays on the north side all day and never crosses the east–west line. Whether it rises north of east depends on the date; whether it crosses depends on the latitude.
 21. **Mirror skies** — Pin London and Sydney on the same June date. London's arc leans south and is long; Sydney's leans north and is short.
 22. **A Sun that never sets** — Tromsø on 21 June draws a closed loop that never touches the ground disc. On 21 December the whole loop sits beneath it, and the readout says the Sun stays below the horizon all day.
-23. **How far the sunrise wanders** — Turn on the sunrise spread. London's sunrise slides along 80° of horizon through the year; Tromsø's covers nearly the whole horizon and vanishes entirely for part of the year.
+23. **Stand in the field and turn round** — In Look around you are in the middle of the dome at eye height. Face south, then drag right to follow the Sun back to where it rose in the north-east, and drag down to tilt up to where it passes overhead at noon.
+24. **How far the sunrise wanders** — Turn on the sunrise spread. London's sunrise slides along 80° of horizon through the year; Tromsø's covers nearly the whole horizon and vanishes entirely for part of the year.
 
 ### Responsive/readability contract
 

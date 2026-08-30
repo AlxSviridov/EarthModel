@@ -196,21 +196,121 @@ function YearFan({ trace }: { trace: ResolvedTrace }) {
 }
 
 const EYE_HEIGHT = DOME_RADIUS * 0.11
+const MAX_PITCH = THREE.MathUtils.degToRad(88)
+const MIN_PITCH = THREE.MathUtils.degToRad(-40)
 
 /**
- * Standing inside, the camera sits near the middle at eye height and looks along a ray aimed at the
- * equator-facing sky. The pitch follows the day's noon altitude, so a low winter arc and a near
- * overhead tropical one both land in frame.
+ * Camera yaw for a compass azimuth. The camera looks down -Z and -Z is north, so with a YXZ
+ * rotation order a heading of `az` degrees is simply `-az` radians of yaw.
  */
-function observerPose(facing: number, noonAltitude: number): { camera: THREE.Vector3; target: THREE.Vector3 } {
-  const azimuth = facing < 0 ? 180 : 0
-  const pitch = Math.min(34, Math.max(10, noonAltitude * 0.45))
-  const camera = new THREE.Vector3(0, EYE_HEIGHT, 0)
-  const aim = skyPoint(pitch, azimuth, 1)
-  return { camera, target: camera.clone().add(aim.multiplyScalar(DOME_RADIUS * 0.6)) }
+const yawForAzimuth = (azimuthDegrees: number) => -THREE.MathUtils.degToRad(azimuthDegrees)
+
+/**
+ * Standing inside the dome, Street View style: the camera never moves off the observer's eye
+ * point, and dragging turns its heading rather than orbiting it around anything. Grabbing the sky
+ * and pulling it follows the pointer, so dragging right swings the view left.
+ */
+function FirstPersonLook({ viewNonce, facing, noonAltitude, reducedMotion }: { viewNonce: number; facing: number; noonAltitude: number; reducedMotion: boolean }) {
+  const { camera, gl } = useThree()
+  const initialYaw = yawForAzimuth(facing < 0 ? 180 : 0)
+  const yaw = useRef(initialYaw)
+  const pitch = useRef(THREE.MathUtils.degToRad(20))
+  const aim = useRef({ yaw: initialYaw, pitch: THREE.MathUtils.degToRad(20) })
+  const dragging = useRef(false)
+  const pointer = useRef({ x: 0, y: 0 })
+  const held = useRef(new Set<string>())
+  const previousKey = useRef('')
+  const fov = useRef(75)
+
+  useEffect(() => {
+    const element = gl.domElement
+    const down = (event: PointerEvent) => {
+      dragging.current = true
+      pointer.current = { x: event.clientX, y: event.clientY }
+      element.setPointerCapture(event.pointerId)
+      element.style.cursor = 'grabbing'
+    }
+    const move = (event: PointerEvent) => {
+      if (!dragging.current) return
+      const dx = event.clientX - pointer.current.x
+      const dy = event.clientY - pointer.current.y
+      pointer.current = { x: event.clientX, y: event.clientY }
+      const perDegree = THREE.MathUtils.degToRad(fov.current) / element.clientHeight
+      aim.current.yaw += dx * perDegree
+      aim.current.pitch = Math.min(MAX_PITCH, Math.max(MIN_PITCH, aim.current.pitch + dy * perDegree))
+    }
+    const up = (event: PointerEvent) => {
+      dragging.current = false
+      if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId)
+      element.style.cursor = 'grab'
+    }
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault()
+      fov.current = Math.min(95, Math.max(28, fov.current + Math.sign(event.deltaY) * 4))
+    }
+    const keyDown = (event: KeyboardEvent) => {
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-', '_'].includes(event.key)) return
+      const target = event.target as HTMLElement | null
+      if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return
+      event.preventDefault()
+      held.current.add(event.key)
+    }
+    const keyUp = (event: KeyboardEvent) => held.current.delete(event.key)
+    element.style.cursor = 'grab'
+    element.addEventListener('pointerdown', down)
+    element.addEventListener('pointermove', move)
+    element.addEventListener('pointerup', up)
+    element.addEventListener('pointercancel', up)
+    element.addEventListener('wheel', wheel, { passive: false })
+    window.addEventListener('keydown', keyDown)
+    window.addEventListener('keyup', keyUp)
+    return () => {
+      element.style.cursor = ''
+      element.removeEventListener('pointerdown', down)
+      element.removeEventListener('pointermove', move)
+      element.removeEventListener('pointerup', up)
+      element.removeEventListener('pointercancel', up)
+      element.removeEventListener('wheel', wheel)
+      window.removeEventListener('keydown', keyDown)
+      window.removeEventListener('keyup', keyUp)
+    }
+  }, [gl])
+
+  useFrame((_state, delta) => {
+    // Re-aim at the equator-facing sky when the place, the day, or the preset button changes.
+    const key = `${viewNonce}-${facing}-${Math.round(noonAltitude / 5)}`
+    if (previousKey.current !== key) {
+      previousKey.current = key
+      aim.current.yaw = yawForAzimuth(facing < 0 ? 180 : 0)
+      aim.current.pitch = THREE.MathUtils.degToRad(Math.min(38, Math.max(8, noonAltitude * 0.45)))
+    }
+    const keys = held.current
+    if (keys.size) {
+      const step = delta * 1.1
+      if (keys.has('ArrowLeft')) aim.current.yaw += step
+      if (keys.has('ArrowRight')) aim.current.yaw -= step
+      if (keys.has('ArrowUp')) aim.current.pitch = Math.min(MAX_PITCH, aim.current.pitch + step * 0.7)
+      if (keys.has('ArrowDown')) aim.current.pitch = Math.max(MIN_PITCH, aim.current.pitch - step * 0.7)
+      if (keys.has('+') || keys.has('=')) fov.current = Math.max(28, fov.current - delta * 40)
+      if (keys.has('-') || keys.has('_')) fov.current = Math.min(95, fov.current + delta * 40)
+    }
+    const damping = reducedMotion ? 1 : 1 - Math.exp(-delta * 12)
+    yaw.current += (aim.current.yaw - yaw.current) * damping
+    pitch.current += (aim.current.pitch - pitch.current) * damping
+    camera.position.set(0, EYE_HEIGHT, 0)
+    camera.rotation.order = 'YXZ'
+    camera.rotation.set(pitch.current, yaw.current, 0)
+    const perspective = camera as THREE.PerspectiveCamera
+    if (Math.abs(perspective.fov - fov.current) > 0.05) {
+      perspective.fov += (fov.current - perspective.fov) * damping
+      perspective.updateProjectionMatrix()
+    }
+  })
+
+  return null
 }
 
-function CameraRig({ view, viewNonce, facing, noonAltitude, reducedMotion }: { view: SkyView; viewNonce: number; facing: number; noonAltitude: number; reducedMotion: boolean }) {
+function CameraRig({ view, viewNonce, facing, reducedMotion }: { view: SkyView; viewNonce: number; facing: number; reducedMotion: boolean }) {
   const controls = useRef<OrbitControlsImpl>(null)
   const { camera } = useThree()
   const previousKey = useRef('')
@@ -218,8 +318,7 @@ function CameraRig({ view, viewNonce, facing, noonAltitude, reducedMotion }: { v
 
   useFrame((_state, delta) => {
     if (!controls.current) return
-    const pitchKey = Math.round(noonAltitude / 5)
-    const key = `${view}-${viewNonce}-${facing}-${pitchKey}`
+    const key = `${view}-${viewNonce}-${facing}`
     const changed = previousKey.current !== key
     if (changed) {
       previousKey.current = key
@@ -229,19 +328,14 @@ function CameraRig({ view, viewNonce, facing, noonAltitude, reducedMotion }: { v
       controls.current.update()
       return
     }
-    const observer = observerPose(facing, noonAltitude)
     const desired = view === 'birdseye'
       ? new THREE.Vector3(0, DOME_RADIUS * 2.35, 0.02)
-      : view === 'whole'
-        ? new THREE.Vector3(DOME_RADIUS * 1.35, DOME_RADIUS * 1.45, facing * DOME_RADIUS * 1.95)
-        : observer.camera
-    const target = view === 'observer' ? observer.target : new THREE.Vector3(0, DOME_RADIUS * 0.14, 0)
+      : new THREE.Vector3(DOME_RADIUS * 1.35, DOME_RADIUS * 1.45, facing * DOME_RADIUS * 1.95)
+    const target = new THREE.Vector3(0, DOME_RADIUS * 0.14, 0)
     const damping = reducedMotion ? 1 : 1 - Math.exp(-delta * (changed ? 8 : 3.2))
-    // Standing inside needs a wider lens: a summer arc spans more altitude than a normal field of view.
-    const desiredFov = view === 'observer' ? 75 : 55
     const perspective = camera as THREE.PerspectiveCamera
-    if (Math.abs(perspective.fov - desiredFov) > 0.05) {
-      perspective.fov += (desiredFov - perspective.fov) * damping
+    if (Math.abs(perspective.fov - 55) > 0.05) {
+      perspective.fov += (55 - perspective.fov) * damping
       perspective.updateProjectionMatrix()
     }
     camera.position.lerp(desired, damping)
@@ -250,11 +344,12 @@ function CameraRig({ view, viewNonce, facing, noonAltitude, reducedMotion }: { v
     controls.current.update()
   })
 
-  return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={DOME_RADIUS * 0.22} maxDistance={DOME_RADIUS * 3.2} maxPolarAngle={Math.PI * 0.62} enableDamping dampingFactor={0.07} onStart={() => { settling.current = false }} />
+  return <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={DOME_RADIUS * 0.5} maxDistance={DOME_RADIUS * 3.2} maxPolarAngle={Math.PI * 0.62} enableDamping dampingFactor={0.07} onStart={() => { settling.current = false }} />
 }
 
 function DomeContent({ traces, highlightId, layers, view, viewNonce, reducedMotion }: SkyDomeSceneProps) {
   const live = traces[0]
+  const facing = live && live.city.latitude < 0 ? 1 : -1
   const noonAltitude = useMemo(() => (live ? solarPosition(live.city.latitude, live.date, 12, live.tilt).altitudeDegrees : 40), [live])
   const band = useMemo(
     () => (layers.horizonBand && live ? annualSunriseAzimuthRange(live.city.latitude, live.date.getUTCFullYear(), live.tilt) : { minAzimuth: null, maxAzimuth: null, daysWithoutSunrise: 0 }),
@@ -276,7 +371,9 @@ function DomeContent({ traces, highlightId, layers, view, viewNonce, reducedMoti
         />
       ))}
       {traces.map((trace) => <SunMarker key={trace.id} trace={trace} />)}
-      <CameraRig view={view} viewNonce={viewNonce} facing={live && live.city.latitude < 0 ? 1 : -1} noonAltitude={noonAltitude} reducedMotion={reducedMotion} />
+      {view === 'observer'
+        ? <FirstPersonLook viewNonce={viewNonce} facing={facing} noonAltitude={noonAltitude} reducedMotion={reducedMotion} />
+        : <CameraRig view={view} viewNonce={viewNonce} facing={facing} reducedMotion={reducedMotion} />}
     </>
   )
 }
@@ -290,49 +387,10 @@ export interface SkyDomeSceneProps {
   reducedMotion: boolean
 }
 
-/** Arrow keys orbit and +/- zoom, so the dome is usable without a pointer. */
-function KeyboardControls() {
-  const { camera, controls } = useThree()
-  const held = useRef(new Set<string>())
-
-  useEffect(() => {
-    const down = (event: KeyboardEvent) => {
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-', '_'].includes(event.key)) return
-      const target = event.target as HTMLElement | null
-      if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return
-      event.preventDefault()
-      held.current.add(event.key)
-    }
-    const up = (event: KeyboardEvent) => held.current.delete(event.key)
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up) }
-  }, [])
-
-  useFrame((_state, delta) => {
-    const orbit = controls as OrbitControlsImpl | null
-    if (!orbit || held.current.size === 0) return
-    const keys = held.current
-    const target = orbit.target
-    const offset = camera.position.clone().sub(target)
-    const spherical = new THREE.Spherical().setFromVector3(offset)
-    if (keys.has('ArrowLeft')) spherical.theta += delta * 1.1
-    if (keys.has('ArrowRight')) spherical.theta -= delta * 1.1
-    if (keys.has('ArrowUp')) spherical.phi = Math.max(0.05, spherical.phi - delta * 0.8)
-    if (keys.has('ArrowDown')) spherical.phi = Math.min(Math.PI * 0.62, spherical.phi + delta * 0.8)
-    if (keys.has('+') || keys.has('=')) spherical.radius = Math.max(DOME_RADIUS * 0.22, spherical.radius - delta * DOME_RADIUS)
-    if (keys.has('-') || keys.has('_')) spherical.radius = Math.min(DOME_RADIUS * 3.2, spherical.radius + delta * DOME_RADIUS)
-    camera.position.copy(target).add(new THREE.Vector3().setFromSpherical(spherical))
-    orbit.update()
-  })
-
-  return null
-}
-
 export function SkyDomeScene(props: SkyDomeSceneProps) {
   return (
     <Canvas camera={{ position: [0, DOME_RADIUS * 0.16, DOME_RADIUS * 0.3], fov: 60, near: 0.05, far: DOME_RADIUS * 8 }} dpr={[1, 1.75]} gl={{ antialias: true, powerPreference: 'high-performance' }}>
-      <Suspense fallback={null}><DomeContent {...props} /><KeyboardControls /></Suspense>
+      <Suspense fallback={null}><DomeContent {...props} /></Suspense>
     </Canvas>
   )
 }

@@ -12,7 +12,7 @@ import { SkyPathChart } from './SkyPathChart'
 
 const VIEWS: { id: SkyView; label: string }[] = [
   { id: 'whole', label: 'Whole sky' },
-  { id: 'observer', label: 'Standing here' },
+  { id: 'observer', label: 'Look around' },
   { id: 'birdseye', label: 'From above' },
 ]
 
@@ -67,7 +67,7 @@ export function SkyPathsLab() {
             </SceneBoundary>
           </div>
           {band && <p className="dome-hint dome-hint--band"><Sunrise size={13} /> {band.minAzimuth === null ? `The Sun never rises in ${focusedCity.name} on ${band.daysWithoutSunrise} days of the year, so there is no sunrise spread to show.` : `Across the year the Sun rises anywhere in the amber band, from ${band.minAzimuth.toFixed(0)}° to ${band.maxAzimuth!.toFixed(0)}°${band.daysWithoutSunrise > 0 ? ` — and on ${band.daysWithoutSunrise} days it does not rise at all` : ''}.`}</p>}
-          <p className="dome-hint"><Compass size={13} /> Drag to look around · scroll to zoom · arrow keys work too. The amber line running east–west splits the sky into a north half and a south half.</p>
+          <p className="dome-hint"><Compass size={13} /> {view === 'observer' ? 'You are standing in the middle. Drag to turn your head, scroll to zoom in and out, arrow keys work too.' : 'Drag to turn the dome · scroll to zoom · arrow keys work too.'} The amber line running east–west splits the sky into a north half and a south half.</p>
           <p className="dome-headline" aria-live="polite"><strong>{liveReading.riseLine}.</strong> {liveReading.sideLine}.</p>
         </section>
 

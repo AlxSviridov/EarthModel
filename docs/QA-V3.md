@@ -38,7 +38,13 @@ The Quito June row is the reason the lab prints two separate lines instead of on
   reload (persisted through the store).
 - Day playback advanced the clock from 12:00 to 14:48 over roughly 2.5 s at 4 h/s, with
   Sun markers moving on every trace.
-- All three viewpoints recall correctly. "From the east" was removed during QA: looking
+- "Look around" is a genuine first-person mode, verified by dragging: from a southward
+  start, dragging right swung the heading round to the east and brought the morning half of
+  the arc with its 06:00 and 09:00 marks into view; dragging down tilted up to the zenith.
+  The camera stays at the eye point throughout. Arrow keys turn and tilt the same way, and
+  day playback still moves the Sun while in this mode (clock reached 15:36).
+- All three viewpoints recall correctly and round-trip without errors; the two orbit views
+  still drag normally. "From the east" was removed during QA: looking
   along the east–west axis projects out the east–west component, so the symmetric morning
   and afternoon halves collapse onto one another. "Whole sky" replaced it and is the
   default, because a June arc at London spans 262° of azimuth and 62° of altitude and
