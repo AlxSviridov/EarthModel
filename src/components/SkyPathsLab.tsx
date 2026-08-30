@@ -1,7 +1,7 @@
 import { CalendarDays, Clock3, Compass, Eye, MapPin, Pause, Pin, Play, Sunrise, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cities, cityById } from '../data/cities'
-import { DEFAULT_SKY_LAYERS, MAX_SKY_TRACES, readTrace, resolveTraces, type SkyLayers, type SkyView } from '../data/skyTraces'
+import { MAX_SKY_TRACES, readTrace, resolveTraces, type SkyLayers, type SkyView } from '../data/skyTraces'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { annualSunriseAzimuthRange, dateFromYearProgress, formatClock, solarPosition, yearProgress } from '../science/solar'
 import { SkyDomeScene } from '../scene/SkyDomeScene'
@@ -31,9 +31,9 @@ export function SkyPathsLab() {
   const daySpeed = useSimulation((state) => state.daySpeed)
   const tilt = useSimulation((state) => state.tilt)
   const pinned = useSimulation((state) => state.skyTraces)
-  const { setSolarHour, setProgress, setPlaying, setPlaybackMode, setDaySpeed, pinSkyTrace, updateSkyTrace, removeSkyTrace } = useSimulation()
-  const [layers, setLayers] = useState<SkyLayers>(DEFAULT_SKY_LAYERS)
-  const [view, setView] = useState<SkyView>('whole')
+  const layers = useSimulation((state) => state.skyLayers)
+  const view = useSimulation((state) => state.skyView)
+  const { setSolarHour, setProgress, setPlaying, setPlaybackMode, setDaySpeed, pinSkyTrace, updateSkyTrace, removeSkyTrace, setSkyView, toggleSkyLayer } = useSimulation()
   const [viewNonce, setViewNonce] = useState(0)
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const reducedMotion = usePrefersReducedMotion()
@@ -44,7 +44,7 @@ export function SkyPathsLab() {
   const focusedCity = cityById(focusedId)
   const band = useMemo(() => (layers.horizonBand ? annualSunriseAzimuthRange(focusedCity.latitude, date.getUTCFullYear(), tilt) : null), [layers.horizonBand, focusedCity.latitude, date, tilt])
   const liveReading = readings[0].reading
-  const recall = (next: SkyView) => { setView(next); setViewNonce((nonce) => nonce + 1) }
+  const recall = (next: SkyView) => { setSkyView(next); setViewNonce((nonce) => nonce + 1) }
 
   return (
     <div className="lab-page sky-lab">
@@ -55,7 +55,7 @@ export function SkyPathsLab() {
 
       <section className="lab-toolbar">
         <LabCityPicker />
-        <div className="layer-toggles"><span>Show</span><div>{LAYER_LABELS.map((layer) => <button key={layer.id} className={layers[layer.id] ? 'active' : ''} aria-pressed={layers[layer.id]} onClick={() => setLayers((current) => ({ ...current, [layer.id]: !current[layer.id] }))}>{layer.label}</button>)}</div></div>
+        <div className="layer-toggles"><span>Show</span><div>{LAYER_LABELS.map((layer) => <button key={layer.id} className={layers[layer.id] ? 'active' : ''} aria-pressed={layers[layer.id]} onClick={() => toggleSkyLayer(layer.id)}>{layer.label}</button>)}</div></div>
       </section>
 
       <div className="sky-dome-grid">

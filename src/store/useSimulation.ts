@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { cityById } from '../data/cities'
-import { MAX_SKY_TRACES, type SkyTrace } from '../data/skyTraces'
+import { DEFAULT_SKY_LAYERS, MAX_SKY_TRACES, type SkyLayers, type SkyTrace, type SkyView } from '../data/skyTraces'
 import { dateFromYearProgress, EARTH_TILT_DEGREES, yearProgress } from '../science/solar'
 
 export type CameraMode = 'globe' | 'orbit'
@@ -27,6 +27,9 @@ interface SimulationState {
   showTerminator: boolean
   discoveryIndex: number | null
   skyTraces: SkyTrace[]
+  skyView: SkyView
+  skyLayers: SkyLayers
+  sundialCalibration: number
   setPlaying: (playing: boolean) => void
   setActiveLab: (lab: Lab) => void
   setPlaybackMode: (mode: PlaybackMode) => void
@@ -49,10 +52,41 @@ interface SimulationState {
   updateSkyTrace: (id: string, patch: Partial<Omit<SkyTrace, 'id'>>) => void
   removeSkyTrace: (id: string) => void
   clearSkyTraces: () => void
+  setSkyView: (view: SkyView) => void
+  setSkyLayers: (layers: Partial<SkyLayers>) => void
+  toggleSkyLayer: (layer: keyof SkyLayers) => void
+  setSundialCalibration: (progress: number) => void
   reset: () => void
 }
 
 const initialDate = new Date(Date.UTC(2026, 0, 1, 12)).toISOString()
+
+/** 15 April in a 365-day year: the calibration date the sundial lab has always opened on. */
+const DEFAULT_SUNDIAL_CALIBRATION = 104 / 364
+
+/** What actually reaches localStorage. Playback, camera nonces and the current date are
+ *  deliberately excluded: reopening the app should restore a setup, not a moment. */
+const partialize = (state: SimulationState) => ({
+  activeLab: state.activeLab,
+  playbackMode: state.playbackMode,
+  yearSpeed: state.yearSpeed,
+  daySpeed: state.daySpeed,
+  solarHour: state.solarHour,
+  tilt: state.tilt,
+  selectedCityIds: state.selectedCityIds,
+  focusedCityId: state.focusedCityId,
+  cameraMode: state.cameraMode,
+  trackCity: state.trackCity,
+  showAxis: state.showAxis,
+  showEquator: state.showEquator,
+  showTerminator: state.showTerminator,
+  skyTraces: state.skyTraces,
+  skyView: state.skyView,
+  skyLayers: state.skyLayers,
+  sundialCalibration: state.sundialCalibration,
+})
+
+type PersistedSimulation = ReturnType<typeof partialize>
 
 export const useSimulation = create<SimulationState>()(
   persist(
@@ -75,6 +109,9 @@ export const useSimulation = create<SimulationState>()(
       showTerminator: true,
       discoveryIndex: null,
       skyTraces: [],
+      skyView: 'whole',
+      skyLayers: DEFAULT_SKY_LAYERS,
+      sundialCalibration: DEFAULT_SUNDIAL_CALIBRATION,
       setPlaying: (playing) => set({ playing }),
       setActiveLab: (activeLab) => set({ activeLab, playing: false }),
       setPlaybackMode: (playbackMode) => set({ playbackMode, playing: false }),
@@ -101,9 +138,21 @@ export const useSimulation = create<SimulationState>()(
       updateSkyTrace: (id, patch) => set((state) => ({ skyTraces: state.skyTraces.map((trace) => trace.id === id ? { ...trace, ...patch } : trace) })),
       removeSkyTrace: (id) => set((state) => ({ skyTraces: state.skyTraces.filter((trace) => trace.id !== id) })),
       clearSkyTraces: () => set({ skyTraces: [] }),
-      reset: () => set((state) => ({ dateIso: initialDate, skyTraces: [], activeLab: 'orbit', playing: false, playbackMode: 'year', yearSpeed: 30, daySpeed: 4, solarHour: 12, tilt: EARTH_TILT_DEGREES, selectedCityIds: ['london'], focusedCityId: 'london', cameraMode: 'globe', trackCity: true, cameraResetNonce: state.cameraResetNonce + 1, showAxis: true, showEquator: false, showTerminator: true, discoveryIndex: null })),
+      setSkyView: (skyView) => set({ skyView }),
+      setSkyLayers: (layers) => set((state) => ({ skyLayers: { ...state.skyLayers, ...layers } })),
+      toggleSkyLayer: (layer) => set((state) => ({ skyLayers: { ...state.skyLayers, [layer]: !state.skyLayers[layer] } })),
+      setSundialCalibration: (progress) => set({ sundialCalibration: Math.max(0, Math.min(1, progress)) }),
+      reset: () => set((state) => ({ dateIso: initialDate, skyTraces: [], activeLab: 'orbit', playing: false, playbackMode: 'year', yearSpeed: 30, daySpeed: 4, solarHour: 12, tilt: EARTH_TILT_DEGREES, selectedCityIds: ['london'], focusedCityId: 'london', cameraMode: 'globe', trackCity: true, cameraResetNonce: state.cameraResetNonce + 1, showAxis: true, showEquator: false, showTerminator: true, discoveryIndex: null, skyView: 'whole', skyLayers: DEFAULT_SKY_LAYERS, sundialCalibration: DEFAULT_SUNDIAL_CALIBRATION })),
     }),
-    { name: 'orbit-lab-simulation-v2', partialize: (state) => ({ activeLab: state.activeLab, playbackMode: state.playbackMode, yearSpeed: state.yearSpeed, daySpeed: state.daySpeed, solarHour: state.solarHour, tilt: state.tilt, selectedCityIds: state.selectedCityIds, focusedCityId: state.focusedCityId, cameraMode: state.cameraMode, trackCity: state.trackCity, showAxis: state.showAxis, showEquator: state.showEquator, showTerminator: state.showTerminator, skyTraces: state.skyTraces }) },
+    {
+      name: 'orbit-lab-simulation-v2',
+      version: 1,
+      // A version 0 store predates the lifted sky/sundial fields. Returning it unchanged is
+      // the whole migration: persist merges it shallowly over the defaults above, so the new
+      // keys arrive at their defaults and a learner keeps their saved cities.
+      migrate: (persisted) => (persisted ?? {}) as PersistedSimulation,
+      partialize,
+    },
   ),
 )
 

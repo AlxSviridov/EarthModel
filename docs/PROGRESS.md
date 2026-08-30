@@ -4,6 +4,15 @@ Last updated: 2026-08-30 (Europe/London)
 
 ## Current status
 
+Version 4 is in progress, one feature per commit. The first slice makes an investigation
+shareable: the sky viewpoint, sky layer toggles, and sundial calibration date move from
+component state into the store, and a tested pure codec puts the whole setup in the query
+string. A link opens the same lab, date, cities, viewpoint, layers, and pinned traces in a
+browser that has never seen the app, and it overrides saved local preferences without a
+flash of the previous session. The writer stays quiet during playback, so scrubbing and
+playing never touch browser history. Still to come: globe surface relief, the extended
+discovery deck, and the Moon phases lab.
+
 Version 3 rebuilds the Sky paths lab around a 3D sky dome: a compass horizon with N-S and
 east-west ground lines, the east-west great circle that splits the sky into a north half
 and a south half, altitude rings, and up to four comparable traces that are free
@@ -59,6 +68,15 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - [x] GitHub commit/push
 - [ ] Firebase deploy and live verification — blocked on credentials, see below
 
+### Version 4
+
+- [x] Lift sky viewpoint, sky layers, and sundial calibration from component state into the store
+- [x] Add a tested URL codec, startup hydration that beats saved state, a throttled writer, and a Copy link button
+- [ ] Add bundled NASA elevation relief to the globe shader
+- [ ] Extend the discovery deck to every scenario and build a real predict-before-reveal
+- [ ] Build the Moon phases lab on a tested lunar module
+- [ ] Firebase deploy — still blocked on the same missing credentials
+
 ## Known environment state
 
 - Node: v25.8.1; npm: 11.11.0
@@ -70,13 +88,15 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 
 ## Next concrete action
 
-Version 3 is pushed to `claude/current-status-qvya12`, currently at `11f7446` (the dome in
-`6580700`, the ledger correction in `84bd5cd`, the first-person viewpoint in `11f7446`),
-with automated checks and the browser QA matrix green. The deploy is the only outstanding step
-and is blocked on Firebase credentials in this container. Once they are available, run
+Version 4 is in progress on `claude/current-status-qvya12`, landing one feature per commit.
+Shareable URL state is done and verified; surface relief, the extended discovery deck, and
+the Moon phases lab follow in that order.
+
+The Firebase deploy is still outstanding and still blocked on credentials in this container,
+now covering versions 3 and 4 together. Once credentials exist, run
 `npx firebase-tools@latest deploy --only hosting` and repeat the London June/December check
-on the live URL. For later changes, preserve the dome frame, the single apparent-horizon convention,
-and the separation between sunrise direction and east-west crossing recorded in
+on the live URL. For later changes, preserve the dome frame, the single apparent-horizon
+convention, and the separation between sunrise direction and east-west crossing recorded in
 `AGENTS.md` and `docs/ARCHITECTURE.md`.
 
 ## Decision log
@@ -104,3 +124,7 @@ and the separation between sunrise direction and east-west crossing recorded in
 - 2026-08-30 — Dropped the planned "From the east" viewpoint as geometrically degenerate: viewing along the east-west axis collapses the symmetric morning and afternoon halves onto each other. "Whole sky" replaced it and became the default, because a June arc at London spans 262° of azimuth and cannot be seen whole from inside the dome. "Standing here" remains as the immersive view, pitched by the day's noon altitude with a wider lens so horizon and arc share the frame.
 - 2026-08-30 — Introduced the first error boundary in the project, with a WebGL probe, wrapping both 3D scenes; and a reduced-motion hook, since the existing CSS-only rule could not stop the animation loop or camera easing.
 - 2026-08-30 — Added a real first-person viewpoint after review. The previous "Standing here" preset still used `OrbitControls`, so dragging orbited the camera around a point ahead of the viewer rather than turning it on the spot. "Look around" now pins the camera to the eye point and drives heading and pitch directly, Street View style, with the wheel changing field of view instead of distance. The two outside viewpoints keep `OrbitControls`.
+- 2026-08-30 — Version 4 lifts the sky viewpoint, sky layer toggles, and sundial calibration date out of component state into the store. They were unreachable from outside their own lab, which blocked both link sharing and any guided discovery that wants to set them.
+- 2026-08-30 — Investigation state is shared through the query string rather than a hash or a route. Firebase already rewrites every path to `index.html`, and a query keeps the link readable. Separators are `.` and `_` because `URLSearchParams` leaves them alone; commas would percent-encode. Defaults are omitted so a first-time visitor sees a clean address bar.
+- 2026-08-30 — A shared link overrides saved local preferences, applied synchronously before the first render so there is no flash of the previous session. The writer uses `replaceState` and stays silent while playback runs, because the ticker writes state every animation frame; measured 1 history call across 3 s of playback instead of roughly 180.
+- 2026-08-30 — Persisted store gains `version: 1` with a pass-through migration rather than a new storage key, so the added fields arrive at their defaults while a learner keeps their saved cities.

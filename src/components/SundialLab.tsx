@@ -19,11 +19,11 @@ export function SundialLab() {
   const focusedId = useSimulation((state) => state.focusedCityId)
   const playing = useSimulation((state) => state.playing)
   const daySpeed = useSimulation((state) => state.daySpeed)
-  const { setSolarHour, setProgress, setPlaying, setPlaybackMode, setDaySpeed } = useSimulation()
+  const calibrationProgress = useSimulation((state) => state.sundialCalibration)
+  const { setSolarHour, setProgress, setPlaying, setPlaybackMode, setDaySpeed, setSundialCalibration } = useSimulation()
   const date = useMemo(() => new Date(dateIso), [dateIso])
   const year = date.getUTCFullYear()
   const city = cityById(focusedId)
-  const [calibrationProgress, setCalibrationProgress] = useState(104 / (daysInYear(year)-1))
   const calibrationDate = dateFromYearProgress(year, calibrationProgress)
   const errorMinutes = calibratedSundialErrorMinutes(date, calibrationDate)
   const apparentHour = solarHour + equationOfTimeMinutes(date) / 60
@@ -90,9 +90,9 @@ export function SundialLab() {
         </section>
 
         <section className="error-card">
-          <div className="plot-heading"><div><span className="eyebrow">ANNUAL CALIBRATION ERROR</span><h2>When will the dial agree?</h2></div><button onClick={() => setCalibrationProgress(yearProgress(date))}><RotateCcw /> Calibrate on current date</button></div>
+          <div className="plot-heading"><div><span className="eyebrow">ANNUAL CALIBRATION ERROR</span><h2>When will the dial agree?</h2></div><button onClick={() => setSundialCalibration(yearProgress(date))}><RotateCcw /> Calibrate on current date</button></div>
           <div className="error-chart" ref={chartWrap}><svg width={chartWidth} height={chartH} viewBox={`0 0 ${chartWidth} ${chartH}`} role="img" aria-label="Sundial calibration error across the year"><line x1="40" x2={chartWidth-14} y1={cy(0)} y2={cy(0)} className="zero-line" />{[-30,0,30].map(value=><text key={value} x="33" y={cy(value)+4} textAnchor="end" className="axis-label">{value>0?'+':''}{value}m</text>)}<path d={errorPath} fill="none" stroke="#ffc96d" strokeWidth="3" /><line x1={cx(currentIndex)} x2={cx(currentIndex)} y1="24" y2={chartH-30} className="today-line" /><circle cx={cx(currentIndex)} cy={cy(errorMinutes)} r="6" fill="#ffc96d" stroke="#fff3d3" strokeWidth="2" /></svg></div>
-          <label className="lab-slider"><span><CalendarDays /> Calibration date <strong>{calibrationDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'})}</strong></span><input type="range" min="0" max="1" step=".001" value={calibrationProgress} onChange={(event)=>setCalibrationProgress(Number(event.target.value))} aria-label="Sundial calibration date" /></label>
+          <label className="lab-slider"><span><CalendarDays /> Calibration date <strong>{calibrationDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'})}</strong></span><input type="range" min="0" max="1" step=".001" value={calibrationProgress} onChange={(event)=>setSundialCalibration(Number(event.target.value))} aria-label="Sundial calibration date" /></label>
           <label className="lab-slider"><span><CalendarDays /> Test date <strong>{date.toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'})}</strong></span><input type="range" min="0" max="1" step=".001" value={yearProgress(date)} onChange={(event)=>setProgress(Number(event.target.value))} aria-label="Sundial test date" /></label>
           <div className="date-presets"><button onClick={() => setProgress(41/(daysInYear(year)-1))}>11 Feb</button><button onClick={() => setProgress(104/(daysInYear(year)-1))}>15 Apr</button><button onClick={() => setProgress(171/(daysInYear(year)-1))}>21 Jun</button><button onClick={() => setProgress(306/(daysInYear(year)-1))}>3 Nov</button></div>
           <div className="equation-explainer"><strong>The equation of time</strong><p>A real sundial follows the actual Sun. A perfect clock follows the average Sun. The gap between them changes by roughly half an hour across the year. Calibration removes the error on one chosen day—not every day.</p></div>

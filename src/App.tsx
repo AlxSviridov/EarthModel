@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { BookOpen, Compass, Globe2, Info, Menu, Orbit, SunMedium, X } from 'lucide-react'
 import { ControlPanel } from './components/ControlPanel'
+import { CopyLinkButton } from './components/CopyLinkButton'
 import { DaylightChart } from './components/DaylightChart'
 import { DiscoveryDrawer } from './components/DiscoveryDrawer'
 import { SceneBoundary } from './components/SceneBoundary'
 import { SimulationTicker } from './components/SimulationTicker'
+import { UrlSync } from './components/UrlSync'
 import { SkyPathsLab } from './components/SkyPathsLab'
 import { SundialLab } from './components/SundialLab'
 import { EarthScene } from './scene/EarthScene'
@@ -32,10 +34,11 @@ export default function App() {
   return (
     <div className="app-shell">
       <SimulationTicker />
+      <UrlSync />
       <header className="topbar">
         <button className="brand" onClick={() => chooseLab('orbit')}><span className="brand-orbit"><i /></span><span><strong>ORBIT LAB</strong><small>FOLLOW THE LIGHT</small></span></button>
         <nav className="lab-nav" aria-label="Learning labs">{labs.map((lab) => { const Icon = lab.icon; return <button key={lab.id} className={activeLab === lab.id ? 'active' : ''} onClick={() => chooseLab(lab.id)}><Icon />{lab.label}</button> })}</nav>
-        <nav className="utility-nav"><button onClick={() => setDiscoveriesOpen(true)}><BookOpen /> <span>Discoveries</span></button><button onClick={() => setAboutOpen(true)}><Info /> <span>How it works</span></button>{activeLab === 'orbit' && <button className="mobile-menu" onClick={() => setMobileControls(!mobileControls)} aria-label="Toggle controls">{mobileControls ? <X /> : <Menu />}</button>}</nav>
+        <nav className="utility-nav"><button onClick={() => setDiscoveriesOpen(true)}><BookOpen /> <span>Discoveries</span></button><CopyLinkButton /><button onClick={() => setAboutOpen(true)}><Info /> <span>How it works</span></button>{activeLab === 'orbit' && <button className="mobile-menu" onClick={() => setMobileControls(!mobileControls)} aria-label="Toggle controls">{mobileControls ? <X /> : <Menu />}</button>}</nav>
       </header>
 
       {activeLab === 'orbit' && <main id="main" className="workspace">
