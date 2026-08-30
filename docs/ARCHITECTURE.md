@@ -49,10 +49,51 @@ The sundial lab models a polar-aligned gnomon on a horizontal dial, including la
 1. Procedural star field and subtle nebular backdrop
 2. Sun mesh with animated multi-octave procedural granulation, limb variation, corona shells/sprites, and point illumination
 3. Orbit path, month ticks, seasonal event labels, and fixed-axis guide
-4. Earth shader blending day and night textures from the light direction
-5. Cloud shell, rim atmosphere, terminator edge, latitude/equator and axis overlays
+4. Earth shader blending day and night textures from the light direction, with elevation relief on the lit side
+5. Rim atmosphere, terminator edge, latitude/equator and axis overlays
 6. City marker, label, and local horizon/day-state cue
 7. Post-processing kept restrained and adaptive to device capability
+
+Layer 5 previously listed a cloud shell. There has never been one in the code; the entry was
+aspirational and has been corrected rather than left to mislead.
+
+## Surface relief
+
+The globe carries an elevation-derived normal map (`docs/ASSETS.md` records its provenance and
+conversion). Four decisions in the Earth shader are load-bearing:
+
+**The tangent frame is built in object space.** On the sphere the pole really is +Y there, so
+`cross(+Y, N)` is exactly the direction of increasing U. In world space the mesh sits inside the
+axial-tilt group, so world +Y is up to 40° away from the pole; a world-space frame would twist,
+lighting every ridge from the wrong angle and changing as the learner drags the tilt slider.
+The frame is rotated to world space in the vertex shader, because `modelMatrix` is available
+only there.
+
+**The day/night blend keeps the geometric normal.** With the sharp terminator on, the blend band
+is about 2° of arc. A 5° slope in the relief map would displace its midpoint by more than twice
+that, shattering the terminator into night-lights punched through the Andes and islands of
+daylight floating in the dark side. The perturbed normal earns exactly one job: a bounded
+difference added to the diffuse term, weighted toward grazing light. Overall globe brightness is
+unchanged.
+
+**Relief is invisible on the night side, deliberately.** The night branch has no lighting term,
+and it should not gain one: the night side is not lit by the Sun, and Black Marble is an
+emissive radiance measurement — multiplying it by a relief term would darken genuinely lit
+valleys and brighten genuinely dark ridges, inventing signal in data. The visible consequence is
+the honest one, and it is the lesson: you can only see mountains where the sunlight comes in
+sideways, which is why they appear along the day/night line and nowhere else.
+
+**The texture is optional.** `useOptionalTexture` resolves to null on failure rather than
+throwing, so a missing relief map costs one visual effect instead of the whole Canvas. drei's
+`useTexture` suspends and rethrows, which is why the day and night maps still take down the
+scene — a follow-up slice should route them through the same hook.
+
+Relief is exaggerated roughly a hundredfold: Everest is 0.14% of Earth's radius, so any visible
+relief is a large lie about scale. The persistent scene label and the About modal both say so.
+
+The limb glow was fixed at the same time. It dotted the world-space normal against a fixed world
++Z, which is not a view-dependent rim: the glow stayed pinned to one side of the globe and slid
+across the visible disc as the camera orbited. It now uses the real view direction.
 
 ## Performance budget
 

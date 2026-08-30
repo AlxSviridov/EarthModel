@@ -7,6 +7,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { cityById } from '../data/cities'
 import { dayOfYear, daysInYear } from '../science/solar'
 import { useSimulation } from '../store/useSimulation'
+import { useOptionalTexture } from './useOptionalTexture'
 
 const ORBIT_RADIUS = 7.2
 const EARTH_RADIUS = 1
@@ -153,12 +154,36 @@ function makeGlowTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas)
 }
 
+/** Tuned once, against the 5-degree RMS slope the relief map is built to. Deliberately not
+ *  a control: every other overlay toggle maps to a taught concept, and "bump strength"
+ *  maps to none — its only honest setting is the one that looks least dramatic. */
+const RELIEF_STRENGTH = 0.85
+
 const earthVertexShader = `
   varying vec2 vUv;
   varying vec3 vNormalWorld;
+  varying vec3 vTangentWorld;
+  varying vec3 vViewWorld;
+  varying float vPoleFade;
   void main() {
     vUv = uv;
-    vNormalWorld = normalize(mat3(modelMatrix) * normal);
+
+    // The tangent frame is built in OBJECT space, where the sphere's pole really is +Y and
+    // cross(+Y, N) is exactly the direction of increasing U. In world space the mesh is
+    // inside the axial-tilt group, so world +Y is up to 40 degrees off the pole and the
+    // frame would twist — lighting every ridge from the wrong angle, and changing as the
+    // learner drags the tilt slider.
+    vec3 objectNormal = normalize(normal);
+    vec3 objectTangent = cross(vec3(0.0, 1.0, 0.0), objectNormal);
+    vPoleFade = length(objectTangent);
+    objectTangent = vPoleFade > 1e-4 ? objectTangent / vPoleFade : vec3(0.0, 0.0, 1.0);
+
+    mat3 toWorld = mat3(modelMatrix);
+    vNormalWorld = normalize(toWorld * objectNormal);
+    vTangentWorld = normalize(toWorld * objectTangent);
+
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+    vViewWorld = cameraPosition - worldPosition.xyz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `
@@ -166,19 +191,55 @@ const earthVertexShader = `
 const earthFragmentShader = `
   uniform sampler2D dayMap;
   uniform sampler2D nightMap;
+  uniform sampler2D reliefMap;
   uniform vec3 lightDirection;
   uniform float showTerminator;
+  uniform float reliefStrength;
   varying vec2 vUv;
   varying vec3 vNormalWorld;
+  varying vec3 vTangentWorld;
+  varying vec3 vViewWorld;
+  varying float vPoleFade;
   void main() {
     vec3 normal = normalize(vNormalWorld);
-    float sun = dot(normal, normalize(lightDirection));
+    vec3 sunDirection = normalize(lightDirection);
+
+    // The day/night blend runs on the GEOMETRIC normal and must keep doing so. With the
+    // sharp terminator on, the blend band is about 2 degrees of arc; a 5-degree slope in
+    // the relief map would displace its midpoint by more than twice that, shattering the
+    // terminator into night-lights punched through the Andes and islands of daylight
+    // floating in the dark side. That line teaches something, so it stays geometric.
+    float sun = dot(normal, sunDirection);
     float blendWidth = mix(0.09, 0.018, showTerminator);
     float daylight = smoothstep(-blendWidth, blendWidth, sun);
+
+    // The perturbed normal earns exactly one job: shading detail on the lit side.
+    float sunShaded = sun;
+    if (reliefStrength > 0.0) {
+      vec3 tangent = normalize(vTangentWorld - normal * dot(normal, vTangentWorld));
+      vec3 bitangent = cross(normal, tangent);
+      vec3 relief = texture2D(reliefMap, vUv).xyz * 2.0 - 1.0;
+      float amount = reliefStrength * smoothstep(0.02, 0.14, vPoleFade);
+      vec3 shadedNormal = normalize(
+        tangent * (relief.x * amount) +
+        bitangent * (relief.y * amount) +
+        normal * max(relief.z, 0.05)
+      );
+      sunShaded = dot(shadedNormal, sunDirection);
+    }
+
     vec3 day = texture2D(dayMap, vUv).rgb;
     vec3 night = texture2D(nightMap, vUv).rgb * 1.18;
-    day *= 0.72 + max(sun, 0.0) * 0.48;
-    float rim = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 2.7);
+
+    // Relief enters as a bounded difference on top of the unchanged base shading, weighted
+    // toward grazing light. That is why real mountains only show up near dawn and dusk, and
+    // it keeps the overall brightness of the globe exactly as it was.
+    float graze = 1.0 - smoothstep(0.0, 0.40, sun);
+    float reliefTerm = (max(sunShaded, 0.0) - max(sun, 0.0)) * (0.42 + 0.58 * graze);
+    day *= clamp(0.72 + max(sun, 0.0) * 0.48 + reliefTerm * 0.9, 0.30, 1.35);
+
+    vec3 viewDirection = normalize(vViewWorld);
+    float rim = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.7);
     vec3 color = mix(night, day, daylight);
     color += vec3(0.02, 0.11, 0.22) * rim * daylight;
     gl_FragColor = vec4(color, 1.0);
@@ -191,6 +252,7 @@ function Earth({ position }: EarthProps) {
   const earth = useRef<THREE.Mesh>(null)
   const tiltGroup = useRef<THREE.Group>(null)
   const [dayTexture, nightTexture] = useTexture(['/textures/earth-day.png', '/textures/earth-night.jpg'])
+  const reliefTexture = useOptionalTexture('/textures/earth-relief-normal.png')
   const focusedCityId = useSimulation((state) => state.focusedCityId)
   const solarHour = useSimulation((state) => state.solarHour)
   const tilt = useSimulation((state) => state.tilt)
@@ -203,11 +265,17 @@ function Earth({ position }: EarthProps) {
   dayTexture.anisotropy = 8
   nightTexture.anisotropy = 8
 
+  // The relief map arrives asynchronously and is declared but never added to the memo deps:
+  // rebuilding the uniforms object mid-flight would hand the material a new identity and
+  // drop a frame of lighting. The sampler is always declared, so the shader compiles once
+  // whether or not the texture ever lands.
   const uniforms = useMemo(() => ({
     dayMap: { value: dayTexture },
     nightMap: { value: nightTexture },
+    reliefMap: { value: null as THREE.Texture | null },
     lightDirection: { value: new THREE.Vector3(1, 0, 0) },
     showTerminator: { value: 1 },
+    reliefStrength: { value: 0 },
   }), [dayTexture, nightTexture])
 
   const rotationAngle = earthSpinAngle(position, tilt, city.longitude, solarHour)
@@ -217,6 +285,8 @@ function Earth({ position }: EarthProps) {
     const light = position.clone().multiplyScalar(-1).normalize()
     uniforms.lightDirection.value.copy(light)
     uniforms.showTerminator.value = showTerminator ? 1 : 0
+    uniforms.reliefMap.value = reliefTexture
+    uniforms.reliefStrength.value = reliefTexture ? RELIEF_STRENGTH : 0
   })
 
   const marker = latLonVector(city.latitude, city.longitude, 1.025)
@@ -403,7 +473,7 @@ export function EarthScene() {
       </Canvas>
       <div className="scene-hint"><span /> {trackCity ? `${city.name} stays centred · drag to release` : 'Drag to orbit · scroll to zoom'}</div>
       {cameraMode === 'orbit' && <div className="orbit-key">Gold arc = year travelled · bright points = equinoxes & solstices</div>}
-      <div className="scale-note">Concept view · sizes & distances not to scale</div>
+      <div className="scale-note">Concept view · sizes, distances &amp; surface relief not to scale</div>
     </div>
   )
 }

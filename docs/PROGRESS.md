@@ -10,8 +10,14 @@ component state into the store, and a tested pure codec puts the whole setup in 
 string. A link opens the same lab, date, cities, viewpoint, layers, and pinned traces in a
 browser that has never seen the app, and it overrides saved local preferences without a
 flash of the previous session. The writer stays quiet during playback, so scrubbing and
-playing never touch browser history. Still to come: globe surface relief, the extended
-discovery deck, and the Moon phases lab.
+playing never touch browser history.
+
+The second slice gives the globe real surface relief, from a NASA elevation raster converted
+to a normal map by a committed script. The perturbed normal only shades the lit side and is
+weighted toward grazing light, so mountains appear along the day/night line the way they do
+from orbit, while the terminator itself stays a clean arc driven by geometry alone. A missing
+texture degrades to the previous flat globe rather than blanking the scene. Still to come:
+the extended discovery deck and the Moon phases lab.
 
 Version 3 rebuilds the Sky paths lab around a 3D sky dome: a compass horizon with N-S and
 east-west ground lines, the east-west great circle that splits the sky into a north half
@@ -72,7 +78,7 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 
 - [x] Lift sky viewpoint, sky layers, and sundial calibration from component state into the store
 - [x] Add a tested URL codec, startup hydration that beats saved state, a throttled writer, and a Copy link button
-- [ ] Add bundled NASA elevation relief to the globe shader
+- [x] Add bundled NASA elevation relief to the globe shader
 - [ ] Extend the discovery deck to every scenario and build a real predict-before-reveal
 - [ ] Build the Moon phases lab on a tested lunar module
 - [ ] Firebase deploy — still blocked on the same missing credentials
@@ -128,3 +134,9 @@ convention, and the separation between sunrise direction and east-west crossing 
 - 2026-08-30 — Investigation state is shared through the query string rather than a hash or a route. Firebase already rewrites every path to `index.html`, and a query keeps the link readable. Separators are `.` and `_` because `URLSearchParams` leaves them alone; commas would percent-encode. Defaults are omitted so a first-time visitor sees a clean address bar.
 - 2026-08-30 — A shared link overrides saved local preferences, applied synchronously before the first render so there is no flash of the previous session. The writer uses `replaceState` and stays silent while playback runs, because the ticker writes state every animation frame; measured 1 history call across 3 s of playback instead of roughly 180.
 - 2026-08-30 — Persisted store gains `version: 1` with a pass-through migration rather than a new storage key, so the added fields arrive at their defaults while a learner keeps their saved cities.
+- 2026-08-30 — Globe surface relief uses a real NASA elevation-derived normal map, built by a committed script from the 21600x10800 topography raster. Deriving relief from the day texture's brightness was rejected: brightness is not elevation, and inventing terrain a learner would read as real is the visual shortcut AGENTS.md rule 1 forbids.
+- 2026-08-30 — The relief tangent frame is built in object space, not world space. The mesh sits inside the axial-tilt group, so a world-space frame would twist by up to the tilt angle and change as the learner drags the tilt slider.
+- 2026-08-30 — The day/night blend keeps the geometric normal; the perturbed normal only adds a bounded diffuse term weighted toward grazing light. With the sharp terminator on the blend band is about 2 degrees of arc, and a 5-degree slope would displace it by more than twice that, shattering the terminator. Relief is left invisible on the night side because Black Marble is an emissive measurement and shading it would invent signal.
+- 2026-08-30 — The relief texture loads outside drei's suspending loader, so a missing file costs one visual effect rather than blanking the scene. The Earth boundary message no longer claims WebGL is missing when the real fault was an image.
+- 2026-08-30 — Fixed the limb glow, which dotted a world-space normal against a fixed world +Z: the glow was pinned to one side of the globe and slid across the visible disc as the camera orbited. Called out explicitly rather than folded in silently, since it changes an appearance shipped since v1.
+- 2026-08-30 — Corrected `docs/ARCHITECTURE.md`, which listed a cloud shell in the rendering layers. There has never been one in the code.
