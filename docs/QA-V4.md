@@ -210,3 +210,70 @@ Below 1000 px the CSS hides the text label inside the Discoveries and How it wor
 leaving them as icon buttons with **no accessible name**. Both now carry an `aria-label`.
 (Below 700 px the Discoveries button is hidden entirely by design; the control panel's
 "Try a discovery" button is the entry point there, which is how the QA run reached it.)
+
+## Map pin
+
+Prompted by user feedback: the city label "zooms together with globe … looks too massive".
+
+### The cause
+
+The beacon was a drei `<Html>` with `distanceFactor={4.5}`, which scales a label by
+`distanceFactor / (2·tan(fov/2)·distance)` — a pure 1/distance law. Measured against the
+scene's fov of 42 and the `OrbitControls` range of 2.4–40:
+
+| Camera distance | CSS scale | Rendered city name |
+|---|---|---|
+| 2.4 (closest) | 2.44× | ~32 px |
+| 3.65 (City close-up preset) | 1.61× | ~21 px |
+| ~28 (Full orbit preset) | 0.21× | ~3 px |
+| 40 (furthest) | 0.147× | ~2 px |
+
+Broken at both ends: overbearing up close, and below the documented 11 px floor at orbit
+range. The responsive audits in QA-V2, V3 and V4 never caught it because they read computed
+CSS `font-size`, which is blind to drei's transform.
+
+### Verified after the change
+
+| Camera | `.city-pin-chip` size |
+|---|---|
+| City close-up preset | 100 × 27 px |
+| Fully zoomed in | 100 × 27 px |
+| Fully zoomed out | 100 × 27 px |
+
+Constant across the whole range, which is the Google-Maps behaviour asked for.
+
+- **Far-side fade.** In Full orbit view, stepping local solar time through a full rotation at
+  Quito: visible at 12:00, 15:00 and 18:00; hidden at 21:00, 00:00, 03:00 and 06:00; easing
+  back at 09:00 (opacity 0.38). A smooth transition through the limb, not a pop — the deck's
+  midnight-Sun scenario asks the reader to follow the marker through a whole rotation.
+- **No positional drift.** QA-V2 recorded that the label stayed within 9 px of its starting
+  screen position during tracked daily playback. Re-run at London from 08:03: the clock
+  reached 15.85 h and the label moved **0 px**.
+- **Day/night cue.** `docs/ARCHITECTURE.md` had listed a marker day-state cue since v1 with no
+  implementation. Built rather than deleted, from the scene's own Sun geometry so it cannot
+  drift against the visible terminator. Cross-checked against the app's independent daylight
+  readout at London on 21 June:
+
+  | Local solar time | 00 | 03 | 06 | 09 | 12 | 15 | 18 | 21 |
+  |---|---|---|---|---|---|---|---|---|
+  | Pin cue | night | night | day | day | day | day | day | night |
+  | Existing readout | night | night | day | day | day | day | day | night |
+
+  Agrees at all eight, and matches the 03:41–20:19 sunrise/sunset recorded in QA-V3.
+- The Sun and season labels dropped their own `distanceFactor` values (12 and 16) for the same
+  reason, so every label in the app is now constant-size, matching the sky dome, which had
+  always omitted the prop.
+- The halo ring now faces along the surface normal; it was a flat XY ring in the marker's
+  local frame and never lay tangent to the surface.
+
+### Responsive
+
+| Viewport | Horizontal overflow | Text below 11 px |
+|---|---|---|
+| 390 × 844 | 0 px | none |
+| 768 × 900 | 0 px | none |
+| 1024 × 768 | 0 px | none |
+| 1280 × 720 | 0 px | none |
+| 1600 × 900 | 0 px | none |
+
+No console or page errors in any run.

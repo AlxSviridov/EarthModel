@@ -4,8 +4,9 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, Line, OrbitControls, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
-import { cityById } from '../data/cities'
+import { cityById, type City } from '../data/cities'
 import { dayOfYear, daysInYear } from '../science/solar'
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { useSimulation } from '../store/useSimulation'
 import { useOptionalTexture } from './useOptionalTexture'
 
@@ -132,7 +133,7 @@ function Sun() {
       <sprite scale={[5.4, 5.4, 1]}>
         <spriteMaterial map={useMemo(() => makeGlowTexture(), [])} color="#ff9d43" transparent opacity={0.46} depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <Html center position={[0, -1.65, 0]} distanceFactor={12} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+      <Html center position={[0, -1.65, 0]} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
         <span className="scene-label scene-label--sun">THE SUN</span>
       </Html>
     </group>
@@ -154,10 +155,100 @@ function makeGlowTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas)
 }
 
+interface CityPinProps { city: City; position: THREE.Vector3 }
+
+/**
+ * A map pin, not a billboard.
+ *
+ * The anchor is 3D and scales with the globe, because it marks a real place on a real
+ * sphere — that is geography. The label is screen-space chrome and deliberately carries no
+ * `distanceFactor`: drei scales such labels by `distanceFactor / (2*tan(fov/2)*distance)`,
+ * a pure 1/distance law, which made the name swing over 16x across the camera's 2.4-40
+ * range. It was roughly 32 px close up and under 3 px at the full-orbit preset, so it was
+ * both overbearing and, at the far end, below the 11 px floor the product contract sets.
+ *
+ * Visibility is a dot product between the city's world normal and the direction to the
+ * camera, not a raycast. The anchor sits only 0.025 above the surface and drei's raycast
+ * occlusion compares distances with no epsilon, so it flickers at the limb; and
+ * `occlude="blending"` rewrites the canvas z-index, which would undo the deliberate
+ * low-z layering an earlier QA pass established. Opacity fades rather than snapping,
+ * because a learning scenario asks the reader to follow the marker through a whole
+ * rotation.
+ */
+function CityPin({ city, position }: CityPinProps) {
+  const group = useRef<THREE.Group>(null)
+  const label = useRef<HTMLDivElement>(null)
+  const facing = useRef(1)
+  const wasLit = useRef<boolean | null>(null)
+  const worldPosition = useMemo(() => new THREE.Vector3(), [])
+  const toCamera = useMemo(() => new THREE.Vector3(), [])
+  const toSun = useMemo(() => new THREE.Vector3(), [])
+  const normal = useMemo(() => new THREE.Vector3(), [])
+  const reducedMotion = usePrefersReducedMotion()
+  const ringQuaternion = useMemo(
+    () => new THREE.Quaternion().setFromUnitVectors(Z_AXIS, position.clone().normalize()),
+    [position],
+  )
+
+  useFrame((state, delta) => {
+    if (!group.current || !label.current) return
+    group.current.getWorldPosition(worldPosition)
+    // The pin sits just above the surface, so its position from Earth's centre is its normal.
+    group.current.parent?.getWorldPosition(normal)
+    normal.subVectors(worldPosition, normal).normalize()
+    toCamera.subVectors(state.camera.position, worldPosition).normalize()
+
+    // Fade out through the last 20 degrees before the limb rather than popping at it.
+    const target = THREE.MathUtils.smoothstep(normal.dot(toCamera), -0.05, 0.28)
+    facing.current = reducedMotion ? target : THREE.MathUtils.damp(facing.current, target, 9, delta)
+    label.current.style.opacity = facing.current.toFixed(3)
+    label.current.style.visibility = facing.current < 0.02 ? 'hidden' : 'visible'
+
+    // Day/night state, from the same geometry the Earth shader uses: the Sun sits at the
+    // world origin, so the direction to it is simply -worldPosition. Taking it from the
+    // scene rather than from the UTC helper in solar.ts guarantees the dot agrees with the
+    // terminator the learner can see, instead of drifting against it.
+    toSun.copy(worldPosition).multiplyScalar(-1).normalize()
+    const lit = normal.dot(toSun) >= SUNRISE_COSINE
+    if (lit !== wasLit.current) {
+      wasLit.current = lit
+      label.current.dataset.lit = lit ? 'day' : 'night'
+    }
+  })
+
+  return (
+    <group ref={group} position={position}>
+      <mesh>
+        <sphereGeometry args={[0.022, 20, 20]} />
+        <meshBasicMaterial color={city.color} toneMapped={false} />
+      </mesh>
+      {/* Lies flat on the surface: the ring's own +Z is turned to face along the normal,
+          which the previous flat XY ring never did. */}
+      <mesh quaternion={ringQuaternion}>
+        <ringGeometry args={[0.05, 0.062, 48]} />
+        <meshBasicMaterial color={city.color} transparent opacity={0.55} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
+      <Html center position={[0, 0, 0]} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+        <div className="city-pin" ref={label} data-lit="day" style={{ '--city-color': city.color } as React.CSSProperties}>
+          <div className="city-pin-chip">
+            <i className="city-pin-state" />
+            <strong>{city.name}</strong>
+            <span>{Math.abs(city.latitude).toFixed(1)}°{city.latitude >= 0 ? 'N' : 'S'}</span>
+          </div>
+          <i className="city-pin-leader" />
+        </div>
+      </Html>
+    </group>
+  )
+}
+
 /** Tuned once, against the 5-degree RMS slope the relief map is built to. Deliberately not
  *  a control: every other overlay toggle maps to a taught concept, and "bump strength"
  *  maps to none — its only honest setting is the one that looks least dramatic. */
 const RELIEF_STRENGTH = 0.85
+
+/** sin(-0.833°) — the apparent-sunrise altitude the whole project uses, as a cosine test. */
+const SUNRISE_COSINE = -0.01454
 
 const earthVertexShader = `
   varying vec2 vUv;
@@ -307,21 +398,7 @@ function Earth({ position }: EarthProps) {
             <meshBasicMaterial color="#2b8cff" transparent opacity={0.08} side={THREE.BackSide} depthWrite={false} blending={THREE.AdditiveBlending} />
           </mesh>
           {showEquator && <Line points={circlePoints(1.018)} color="#79e7ff" lineWidth={1.1} transparent opacity={0.72} />}
-          <group position={marker}>
-            <mesh>
-              <sphereGeometry args={[0.036, 20, 20]} />
-              <meshBasicMaterial color={city.color} toneMapped={false} />
-            </mesh>
-            <mesh scale={2.8}>
-              <ringGeometry args={[0.025, 0.045, 32]} />
-              <meshBasicMaterial color={city.color} transparent opacity={0.6} side={THREE.DoubleSide} depthWrite={false} />
-            </mesh>
-            <Html center distanceFactor={4.5} position={[0, 0.12, 0]} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-              <div className="city-beacon" style={{ '--city-color': city.color } as React.CSSProperties}>
-                <strong>{city.name}</strong><span>{Math.abs(city.latitude).toFixed(1)}°{city.latitude >= 0 ? 'N' : 'S'}</span>
-              </div>
-            </Html>
-          </group>
+          <CityPin city={city} position={marker} />
         </group>
         {showAxis && (
           <group>
@@ -365,7 +442,7 @@ function OrbitPath({ date }: { date: Date }) {
         return (
           <group key={label as string} position={[Math.cos(angle) * ORBIT_RADIUS, 0, Math.sin(angle) * ORBIT_RADIUS]}>
             <mesh rotation={[Math.PI / 2, 0, 0]}><ringGeometry args={[0.09, 0.14, 24]} /><meshBasicMaterial color="#8aa4bd" transparent opacity={0.5} side={THREE.DoubleSide} /></mesh>
-            <Html center position={[0, 0.28, 0]} distanceFactor={16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}><span className="scene-label">{label as string}</span></Html>
+            <Html center position={[0, 0.28, 0]} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}><span className="scene-label">{label as string}</span></Html>
           </group>
         )
       })}

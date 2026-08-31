@@ -51,11 +51,33 @@ The sundial lab models a polar-aligned gnomon on a horizontal dial, including la
 3. Orbit path, month ticks, seasonal event labels, and fixed-axis guide
 4. Earth shader blending day and night textures from the light direction, with elevation relief on the lit side
 5. Rim atmosphere, terminator edge, latitude/equator and axis overlays
-6. City marker, label, and local horizon/day-state cue
+6. City pin: a 3D anchor, a constant-size label, and a day/night state cue
 7. Post-processing kept restrained and adaptive to device capability
 
 Layer 5 previously listed a cloud shell. There has never been one in the code; the entry was
-aspirational and has been corrected rather than left to mislead.
+aspirational and has been corrected rather than left to mislead. Layer 6's "day-state cue" was
+aspirational in the same way; rather than delete it, it has now been built.
+
+## The city pin
+
+The anchor is 3D and scales with the globe, because it marks a real place on a real sphere.
+The label does not: it carries no `distanceFactor`, so it stays a constant pixel size the way
+a map pin does. drei scales such labels by `distanceFactor / (2·tan(fov/2)·distance)`, a pure
+1/distance law, which over the camera's 2.4-40 range swung the city name more than sixteenfold
+— about 32 px close up and under 3 px at the full-orbit preset, so it was simultaneously
+overbearing and, at the far end, below the 11 px floor the product contract sets. The sky
+dome's labels had always omitted the prop; the Earth scene now matches them.
+
+Visibility on the far side is a dot product between the city's world normal and the direction
+to the camera, faded over the last few degrees before the limb. Not a raycast: the anchor sits
+0.025 above the surface and drei's raycast occlusion compares distances with no epsilon, so it
+flickers there. Not `occlude="blending"` either, which rewrites the canvas z-index and would
+undo the deliberate low-z label layering an earlier QA pass established.
+
+The day/night dot is computed from the same geometry the Earth shader uses — the Sun is at the
+world origin, so the direction to it is just the negated world position — rather than from
+`isLocationInDaylight` in `solar.ts`, which works in UTC. Taking it from the scene guarantees
+the dot agrees with the terminator the learner can actually see instead of drifting against it.
 
 ## Surface relief
 
