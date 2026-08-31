@@ -51,6 +51,7 @@ interface SimulationState {
   pinSkyTrace: (cityId: string, dateIso: string) => void
   updateSkyTrace: (id: string, patch: Partial<Omit<SkyTrace, 'id'>>) => void
   removeSkyTrace: (id: string) => void
+  setSkyTraces: (traces: { cityId: string; dateIso: string }[]) => void
   clearSkyTraces: () => void
   setSkyView: (view: SkyView) => void
   setSkyLayers: (layers: Partial<SkyLayers>) => void
@@ -84,6 +85,8 @@ const partialize = (state: SimulationState) => ({
   skyView: state.skyView,
   skyLayers: state.skyLayers,
   sundialCalibration: state.sundialCalibration,
+  // docs/PRODUCT.md promises the current discovery persists, and until now it did not.
+  discoveryIndex: state.discoveryIndex,
 })
 
 type PersistedSimulation = ReturnType<typeof partialize>
@@ -137,6 +140,9 @@ export const useSimulation = create<SimulationState>()(
       pinSkyTrace: (cityId, dateIso) => set((state) => ({ skyTraces: [...state.skyTraces, { id: `${cityId}-${dateIso}-${state.skyTraces.length}-${Date.now()}`, cityId, dateIso }].slice(-(MAX_SKY_TRACES - 1)) })),
       updateSkyTrace: (id, patch) => set((state) => ({ skyTraces: state.skyTraces.map((trace) => trace.id === id ? { ...trace, ...patch } : trace) })),
       removeSkyTrace: (id) => set((state) => ({ skyTraces: state.skyTraces.filter((trace) => trace.id !== id) })),
+      // Replaces the whole pinned set at once, regenerating ids. A guided discovery sets up
+      // several traces together, which pinSkyTrace can only do one at a time.
+      setSkyTraces: (traces) => set({ skyTraces: traces.slice(0, MAX_SKY_TRACES - 1).map((trace, index) => ({ ...trace, id: `${trace.cityId}-${trace.dateIso}-${index}` })) }),
       clearSkyTraces: () => set({ skyTraces: [] }),
       setSkyView: (skyView) => set({ skyView }),
       setSkyLayers: (layers) => set((state) => ({ skyLayers: { ...state.skyLayers, ...layers } })),

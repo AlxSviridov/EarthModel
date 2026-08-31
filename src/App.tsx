@@ -38,7 +38,7 @@ export default function App() {
       <header className="topbar">
         <button className="brand" onClick={() => chooseLab('orbit')}><span className="brand-orbit"><i /></span><span><strong>ORBIT LAB</strong><small>FOLLOW THE LIGHT</small></span></button>
         <nav className="lab-nav" aria-label="Learning labs">{labs.map((lab) => { const Icon = lab.icon; return <button key={lab.id} className={activeLab === lab.id ? 'active' : ''} onClick={() => chooseLab(lab.id)}><Icon />{lab.label}</button> })}</nav>
-        <nav className="utility-nav"><button onClick={() => setDiscoveriesOpen(true)}><BookOpen /> <span>Discoveries</span></button><CopyLinkButton /><button onClick={() => setAboutOpen(true)}><Info /> <span>How it works</span></button>{activeLab === 'orbit' && <button className="mobile-menu" onClick={() => setMobileControls(!mobileControls)} aria-label="Toggle controls">{mobileControls ? <X /> : <Menu />}</button>}</nav>
+        <nav className="utility-nav"><button onClick={() => setDiscoveriesOpen(true)} aria-label="Discoveries"><BookOpen /> <span>Discoveries</span></button><CopyLinkButton /><button onClick={() => setAboutOpen(true)} aria-label="How it works"><Info /> <span>How it works</span></button>{activeLab === 'orbit' && <button className="mobile-menu" onClick={() => setMobileControls(!mobileControls)} aria-label="Toggle controls">{mobileControls ? <X /> : <Menu />}</button>}</nav>
       </header>
 
       {activeLab === 'orbit' && <main id="main" className="workspace">

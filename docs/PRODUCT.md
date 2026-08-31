@@ -43,7 +43,7 @@ A curious 10-year-old exploring alongside a parent or teacher. Reading should be
 - Multi-city comparison chart with legend, focus, remove, and equinox/solstice guides
 - Axial-tilt experiment control and reset-to-Earth action
 - Orbit/globe camera modes and teaching overlay toggles
-- Guided Discoveries covering the ten scenarios
+- Guided Discoveries covering every learning scenario, with a predict-before-reveal challenge
 - Responsive desktop/tablet design and useful compact mobile layout
 - Accessible controls, visible focus, screen-reader labels, reduced-motion behavior
 - Local persistence for selected cities, display preferences, and current discovery

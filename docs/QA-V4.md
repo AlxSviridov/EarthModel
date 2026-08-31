@@ -130,3 +130,83 @@ appearance, so nothing previously verified is invalidated.
 ### Budget
 
 Textures total **3.44 MB** (1.91 day + 0.78 night + 0.89 relief) against the 8 MB target.
+
+## Guided Discoveries
+
+### Automated
+
+`npm run check` — eslint reports 0 problems, vitest passes **54/54** (36 pre-existing plus 18
+new), `tsc -b` and `vite build` succeed.
+
+The 18 cases in `src/data/discoveries.test.ts` cover the deck as data: 24 discoveries with
+unique ids naming only cities that exist, every one producing a complete state patch with no
+undefined field and a valid date, traces only in the lab that draws them and never more than
+the three the lab can show, the playback settings scenarios 11 and 12 are defined by, the
+first-person viewpoint for 23 and the sunrise band for 24, the two tilt experiments set and
+every other discovery left at 23.44°, both sundial discoveries calibrated on 15 April, and
+every prediction carrying two distinct choices with a valid answer key.
+
+### Interaction
+
+All 24 launched in turn in Chromium, reading back the lab each landed in:
+
+| # | Discovery | Lands in | Prediction | Answer withheld |
+|---|---|---|---|---|
+| 1–10 | the original deck | Orbit | 4 of 10 | yes |
+| 11 | Watch one calm year | Orbit | — | — |
+| 12 | Cross one sunrise | Orbit | — | — |
+| 13 | Compare noon shadows | Sky paths | yes | yes |
+| 14 | Four skies, one day | Sky paths | — | — |
+| 15 | One sky, two seasons | Sky paths | — | — |
+| 16 | Calibrate a sundial | Sundial | yes | yes |
+| 17 | Latitude changes the dial | Sundial | — | — |
+| 18 | Summer starts in the north-east | Sky paths | yes | yes |
+| 19 | Due east, everywhere | Sky paths | — | — |
+| 20 | Rising north of east is not crossing | Sky paths | yes | yes |
+| 21 | Mirror skies | Sky paths | — | — |
+| 22 | A Sun that never sets | Sky paths | — | — |
+| 23 | Stand in the field and turn round | Sky paths | — | — |
+| 24 | How far the sunrise wanders | Sky paths | yes | yes |
+
+All three labs are reached; 9 of 24 are predictions and every one withholds its answer.
+
+State read back from the persisted store, since the discoveries that autoplay deliberately
+leave the URL unwritten:
+
+| # | State applied |
+|---|---|
+| 11 | `activeLab=orbit playbackMode=year yearSpeed=30 cameraMode=orbit` |
+| 12 | `activeLab=orbit playbackMode=day daySpeed=1` — the clock had advanced from 02:00, so the sunrise crossing is live |
+| 16 | `activeLab=sundial sundialCalibration=0.2857` — 15 April |
+| 23 | `activeLab=sky skyView=observer` |
+| 24 | `activeLab=sky skyLayers.horizonBand=true`, other layers still at their defaults |
+| 8 | `tilt=0 cameraMode=orbit` |
+
+- **The prediction gate works.** On "London or Sydney?" the insight is present but withheld
+  before a choice; picking one replaces it with the answer and an acknowledgement of what was
+  guessed. Encouraging rather than scored.
+- **Keyboard.** Escape closes the drawer and focus returns to the Discoveries button. Tab
+  cycles inside the dialog.
+- Shared links carry a discovery's setup: launching #14 produced
+  `?lab=sky&d=2026-06-21&c=london.quito.tromso.capetown&tr=quito_2026-06-21.tromso_2026-06-21.capetown_2026-06-21`.
+
+### Responsive
+
+Measured with the drawer open on a discovery that has choice buttons:
+
+| Viewport | Horizontal overflow | Text below 11 px |
+|---|---|---|
+| 390 × 844 | 0 px | none |
+| 768 × 900 | 0 px | none |
+| 1024 × 768 | 0 px | none |
+| 1280 × 720 | 0 px | none |
+| 1600 × 900 | 0 px | none |
+
+The two choice buttons sit side by side and stack to one column below 700 px.
+
+### Found and fixed while testing
+
+Below 1000 px the CSS hides the text label inside the Discoveries and How it works buttons,
+leaving them as icon buttons with **no accessible name**. Both now carry an `aria-label`.
+(Below 700 px the Discoveries button is hidden entirely by design; the control panel's
+"Try a discovery" button is the entry point there, which is how the QA run reached it.)

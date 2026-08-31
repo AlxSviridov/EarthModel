@@ -79,7 +79,7 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - [x] Lift sky viewpoint, sky layers, and sundial calibration from component state into the store
 - [x] Add a tested URL codec, startup hydration that beats saved state, a throttled writer, and a Copy link button
 - [x] Add bundled NASA elevation relief to the globe shader
-- [ ] Extend the discovery deck to every scenario and build a real predict-before-reveal
+- [x] Extend the discovery deck to every scenario and build a real predict-before-reveal
 - [ ] Build the Moon phases lab on a tested lunar module
 - [ ] Firebase deploy — still blocked on the same missing credentials
 
@@ -140,3 +140,7 @@ convention, and the separation between sunrise direction and east-west crossing 
 - 2026-08-30 — The relief texture loads outside drei's suspending loader, so a missing file costs one visual effect rather than blanking the scene. The Earth boundary message no longer claims WebGL is missing when the real fault was an image.
 - 2026-08-30 — Fixed the limb glow, which dotted a world-space normal against a fixed world +Z: the glow was pinned to one side of the globe and slid across the visible disc as the camera orbited. Called out explicitly rather than folded in silently, since it changes an appearance shipped since v1.
 - 2026-08-30 — Corrected `docs/ARCHITECTURE.md`, which listed a cloud shell in the rendering layers. There has never been one in the code.
+- 2026-08-30 — The discovery deck now covers all 24 learning scenarios, not 10. The `Discovery` type became data-driven because scenarios 11-24 are defined by state the old type could not express: a lab, a playback mode and speed, a sky viewpoint, layer toggles, pinned traces, a sundial calibration date. The old camera rule keyed off array position (`index === 7 || index === 8`), so inserting a scenario would have silently broken it.
+- 2026-08-30 — The launch cascade is extracted as a pure `discoveryState()` and tested there. The project has no DOM test environment, and adding jsdom plus a React testing stack to cover one function would have been a large dependency for a small gain.
+- 2026-08-30 — Predict-before-reveal is now real. The prompt was previously identical boilerplate on all ten discoveries and the answer rendered beside the question, so nothing was ever withheld; scenario 10's acceptance criterion was met only in wording. Nine discoveries now hold their insight back until the learner picks, and the response is encouraging rather than scored.
+- 2026-08-30 — Added Escape-to-close, a focus trap and focus return to the discovery drawer, and gave the Discoveries and How it works buttons `aria-label`s: below 1000 px their text labels are hidden by CSS, which left them as icon buttons with no accessible name.
