@@ -1,8 +1,15 @@
 # Progress Ledger
 
-Last updated: 2026-08-30 (Europe/London)
+Last updated: 2026-09-12 (Europe/London)
 
 ## Current status
+
+Version 3 and the completed Version 4 slices are now the shared release baseline: they
+were fast-forwarded into `main` at `836e4df`, pushed to GitHub, built successfully, and
+deployed to Firebase Hosting on 2026-09-12. The live site is
+`https://earthmodel-orbit-lab.web.app/`; Orbit and the rebuilt 3D Sky paths lab loaded
+there with no browser console errors. The Moon phases lab remains the next unbuilt Version
+4 slice, rather than a reason to leave the shipped work on a separate branch.
 
 Version 4 is in progress, one feature per commit. The first slice makes an investigation
 shareable: the sky viewpoint, sky layer toggles, and sundial calibration date move from
@@ -72,7 +79,7 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - [x] Add a true first-person "Look around" viewpoint that turns on the spot, Street View style
 - [x] Automated checks and the version 3 browser QA matrix
 - [x] GitHub commit/push
-- [ ] Firebase deploy and live verification — blocked on credentials, see below
+- [x] Merge into `main`, Firebase deploy, and live verification
 
 ### Version 4
 
@@ -82,29 +89,22 @@ Version 2 was implemented, verified, and live at `https://earthmodel-orbit-lab.w
 - [x] Extend the discovery deck to every scenario and build a real predict-before-reveal
 - [x] Rebuild the city marker as a constant-size map pin with a day/night cue
 - [ ] Build the Moon phases lab on a tested lunar module
-- [ ] Firebase deploy — still blocked on the same missing credentials
+- [x] Deploy the completed Version 3 and Version 4 slices from `main`
 
 ## Known environment state
 
 - Node: v25.8.1; npm: 11.11.0
 - Git remote: `https://github.com/AlxSviridov/EarthModel.git`
 - Repository default branch: `main`; remote repository was empty at clone time
-- `gh auth status` reports the saved GitHub token invalid. Plain Git credential helper has not yet been tested for push.
-- Firebase CLI is available through `npx firebase-tools@latest`, but **this container holds no Firebase credentials**: `~/.config/configstore/firebase-tools.json` contains only cached MOTD data and no token, and no `FIREBASE_TOKEN` or `GOOGLE_APPLICATION_CREDENTIALS` is set. `firebase deploy` fails with "Failed to authenticate, have you run firebase login?". The earlier "signed-in account verified" note applied to a previous container. Deploying needs an interactive `firebase login` or a CI token/service account supplied to the session.
+- GitHub authentication and HTTPS push were verified on 2026-09-12.
+- Firebase CLI is available through `npx firebase-tools@latest`; Firebase project access and a Hosting deploy were verified on 2026-09-12.
 - Dedicated Firebase project created: `earthmodel-orbit-lab` (project number `652009410953`).
 
 ## Next concrete action
 
-Version 4 is in progress on `claude/current-status-qvya12`, landing one feature per commit.
-Shareable URL state is done and verified; surface relief, the extended discovery deck, and
-the Moon phases lab follow in that order.
-
-The Firebase deploy is still outstanding and still blocked on credentials in this container,
-now covering versions 3 and 4 together. Once credentials exist, run
-`npx firebase-tools@latest deploy --only hosting` and repeat the London June/December check
-on the live URL. For later changes, preserve the dome frame, the single apparent-horizon
-convention, and the separation between sunrise direction and east-west crossing recorded in
-`AGENTS.md` and `docs/ARCHITECTURE.md`.
+Build the Moon phases lab as the next Version 4 slice directly from `main`. Preserve the
+dome frame, the single apparent-horizon convention, and the separation between sunrise
+direction and east-west crossing recorded in `AGENTS.md` and `docs/ARCHITECTURE.md`.
 
 ## Decision log
 
@@ -149,3 +149,4 @@ convention, and the separation between sunrise direction and east-west crossing 
 - 2026-08-30 — The pin's anchor stays 3D and scales with the globe, because it marks a real place; only the label is screen-space chrome. The halo ring now faces along the surface normal, which the previous flat XY ring never did.
 - 2026-08-30 — Far-side visibility uses a dot product against the camera direction, faded over the last few degrees before the limb. A raycast would flicker there because the anchor sits only 0.025 above the surface and drei compares distances with no epsilon, and `occlude="blending"` would rewrite the canvas z-index and undo the low-z label layering an earlier QA pass established.
 - 2026-08-30 — Built the day/night state cue that `docs/ARCHITECTURE.md` had listed since v1 without an implementation, rather than deleting the entry as was done for the phantom cloud shell. It is computed from the scene's own Sun geometry, not the UTC helper in `solar.ts`, so it cannot drift against the visible terminator; verified to agree with the app's existing daylight readout at eight hours across a London midsummer day.
+- 2026-09-12 — Fast-forwarded the eight completed Version 3/4 commits from `claude/current-status-qvya12` into `main` at `836e4df`, pushed GitHub `main`, and deployed the verified production build to Firebase Hosting. The live Orbit and 3D Sky paths labs loaded with no console errors. Moon phases remains the next planned slice.
